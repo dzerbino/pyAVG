@@ -2,7 +2,6 @@
 
 import sys
 import random
-import cnavg.avg.graph
 
 """Produces random evolutionary histories"""
 
@@ -254,52 +253,6 @@ class History(object):
 		return self.root._dot(self.weights)
 
 #########################################
-## Weighted Evolutionary History
-#########################################
-
-def _removeInitialPath(avg):
-	nodes = sorted(avg.nodes())
-	previousNode = nodes[-1]
-		
-	for index in range(len(nodes)/2):
-		nextNode = nodes[2 * index]
-		avg.setLiftedEdge(previousNode, nextNode, -1)
-		avg.changeSegment(nextNode, 0, -1)
-		previousNode = avg[nextNode].twin
-	return avg
-
-class WeightedHistory(History):
-	"""Evolutionary history with weighted branches"""
-	def __init__(self, root, weights):
-		super(WeightedHistory, self).__init__(root)
-		self.weights = weights
-
-	def _avg_Branch(self, avg, branch):
-		if len(branch.children) == 0 and len(branch.genome) > 0:
-			weight = self.weights[branch]
-			nodes = sorted(avg.nodes())
-			if branch.genome[-1] > 0:
-				previousNode = nodes[2 * branch.genome[-1] - 1]
-			else:
-				previousNode = nodes[2 * -branch.genome[-1] - 2]
-				
-			for index in range(len(branch.genome)):
-				if branch.genome[index] > 0:
-					nextNode = nodes[2 * branch.genome[index] - 2]
-				else:
-					nextNode = nodes[2 * -branch.genome[index] - 1]
-				
-				avg.addLiftedEdge(previousNode, nextNode, weight)
-				avg.changeSegment(nextNode, 0, weight)
-				previousNode = avg[nextNode].twin
-		return avg
-
-	def avg(self):
-		"""Produce resultant sequence graph with flow values"""
-		avg = _removeInitialPath(cnavg.avg.graph.linearGraph(len(self.root.genome) * 2))
-		return reduce(self._avg_Branch, self.enumerate(), avg)
-
-#########################################
 ## Random Evolutionary History
 #########################################
 def _addChildBranch(branch):
@@ -377,10 +330,6 @@ class RandomWeightedHistory(RandomHistory):
 #########################################
 def main():
 	history = RandomWeightedHistory(5, 3)
-	avg = history.avg()
-	print history
-	print history.cost()
-	print avg
 	print history.dot()
 
 if __name__ == '__main__':
