@@ -1,0 +1,4 @@
+pyAVG
+=====
+
+AVG sampler prototype
