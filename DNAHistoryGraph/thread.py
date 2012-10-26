@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from segment import Segment
+
 class Thread(object):
 	def __init__(self, iter = None):
 		self.segments = list(iter)

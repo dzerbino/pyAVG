@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from side import Side
+
 class Segment(object):
 	def __init__(self, sequence='N', parent = None, children = [], left_bond = None, right_bond = None):
 		self.sequence = str(sequence)[:1]

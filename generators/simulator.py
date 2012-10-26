@@ -37,22 +37,20 @@ class HistoryBranch(object):
         #########################################
         ## GraphViz representation
         #########################################
-	def _dot(self, weights):
+	def _dot(self):
 		""" GraphViz output """
-		return "\n".join(["digraph G {" , "node [shape=rectangle]", self._dot2(weights), "}"])
+		return "\n".join(["digraph G {" , "node [shape=rectangle]", self._dot2(), "}"])
 
-	def _dot2(self, weights):
+	def _dot2(self):
 		""" GraphViz output """
-		return "\n".join([self._dotString(weights)] + [X._dot2(weights) for X in self.children])
+		return "\n".join([self._dotString()] + [X._dot2() for X in self.children])
 
-	def _dotString(self, weights):
+	def _dotString(self):
 		""" GraphViz output """
-		return "\n".join([self._dotLabel(weights)] + [self._dotEdge(X) for X in self.children])
+		return "\n".join([self._dotLabel()] + [self._dotEdge(X) for X in self.children])
 
-	def _dotLabel(self, weights):
+	def _dotLabel(self):
 		label = str(self.genome)
-		if len(self.children) == 0:
-			label += " (%f)" % weights[self]
 		return '%i [label="%s"]' % (id(self), label)
 
 	def _dotEdge(self, child):
@@ -67,7 +65,7 @@ class InitialBranch(HistoryBranch):
 
 	def __init__(self, length):
 		super(InitialBranch, self).__init__()
-		self.genome = range(1,length+ 1)
+		self.genome = "".join('A' for X in range(1,length+ 1))
 
 	def _label(self):
 		return "INIT\n" + str(self.genome)
@@ -230,6 +228,37 @@ class Deletion(Operation):
 	def _persists(self):
 		return self._testPosition(self.start - 1) or self._testPosition(self.start + self.length)
 
+def invert(base):
+	if base == 'A':
+		return 'T'
+	else:
+		return 'A'
+
+def mutationStr(base):
+	if base == 'A':
+		return 'T>A'
+	else:
+		return 'A>T'
+
+class Mutation(Operation):
+	"""Deletion branch"""
+	def __init__(self, parent, pos):
+		self.pos = pos 
+		super(Mutation, self).__init__(parent)
+
+	def _product(self, genome):
+		return genome[:self.pos] + invert(genome[self.pos]) + genome[self.pos + 1:]
+
+	def _label(self):
+		return "MUT\t%i\t%s\n%s" % (self.pos, mutationStr(self.genome[self.pos]), str(self.genome))
+
+	def _dotBlurb(self):
+		str = "MUT %i,%s" % (self.pos, mutationStr(self.genome[self.pos]))
+		if self._persists():
+			return str
+		else:
+			return "*" + str
+
 #########################################
 ## Evolutionary History
 #########################################
@@ -250,7 +279,7 @@ class History(object):
 
 	def dot(self):
 		""" GraphViz output """
-		return self.root._dot(self.weights)
+		return self.root._dot()
 
 #########################################
 ## Random Evolutionary History
@@ -259,10 +288,12 @@ def _addChildBranch(branch):
 	choice = random.random()
 	start = random.randrange(len(branch.genome))
 
-	if len(branch.genome) > 1 and choice < 0.7:
+	if choice < 0.5:
+		Mutation(branch, start)
+	if len(branch.genome) > 1 and choice < 0.8:
 		length = random.randrange(1, len(branch.genome))
 		Inversion(branch, start, length)
-	elif len(branch.genome) > 1 and choice < 0.8:
+	elif len(branch.genome) > 1 and choice < 0.85:
 		# Separate length prob for different operations (e.g. long distance duplications followed by deletions make things moot)
 		length = int(random.expovariate(0.1))
 		if length >= len(branch.genome):
@@ -303,27 +334,6 @@ class RandomHistory(WeightedHistory):
 		root = InitialBranch(length)
 		_extendHistory(root, maxDepth)
 		super(RandomHistory, self).__init__(root, None)
-
-#########################################
-## Random Weighted Evolutionary History
-#########################################
-
-class RandomWeightedHistory(RandomHistory):
-	def _weightBranchesAtRandom(self):
-		#return dict((X, random.randrange(1,1e6)) for X in self.enumerate() if len(X.children) == 0)
-		return dict((X,1) for X in self.enumerate() if len(X.children) == 0)
-
-	def _normalizeBranches(self, weights):
-		total = float(sum(weights.values()))
-		return dict((X, weights[X]/total) for X in weights)
-
-	def _weightBranches(self):
-		return self._normalizeBranches(self._weightBranchesAtRandom())
-
-	def __init__(self, length, maxDepth):
-		super(RandomWeightedHistory, self).__init__(length, maxDepth)
-		# Ugly side effect needed to get around linear chain of inheritance
-		self.weights = self._weightBranches()
 
 #########################################
 ## Unit test
