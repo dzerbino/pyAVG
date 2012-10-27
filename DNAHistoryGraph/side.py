@@ -7,12 +7,12 @@ class Side(object):
 		assert isinstance(segment, Segment)
 		self.segment = segment
 		self.left = bool(left)
-
-	def opposite(self):
 		if self.left:
-			return self.segment.right
+			self.opposite = self.segment.right
 		else:
-			return self.segment.left
+			self.opposite = self.segment.left
+		if self.opposite is not None:
+			self.opposite.opposite = self
 
 	def parent(self):
 		if self.segment.parent is not None:
@@ -72,3 +72,13 @@ class Side(object):
 
 	def validate(self):
 		assert self.bond is None or self.bond.bond is self
+		assert self.opposite is not None and self.opposite.opposite is self
+
+	def pursue(self, start):
+		if self.bond is None:
+			return self
+		next = self.bond.opposite
+		if next is start:
+			return self
+		else:
+			return next.pursue(start)
