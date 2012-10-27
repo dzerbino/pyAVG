@@ -3,15 +3,16 @@
 from side import Side
 
 class Segment(object):
-	def __init__(self, sequence='N', parent = None, children = [], left_bond = None, right_bond = None):
+	def __init__(self, sequence='N', parent = None, children = []):
 		self.sequence = str(sequence)[:1]
+		assert isinstance(parent, Segment)
 		self.parent = parent
 		self.children = set(children)
-		self.left_bond = left_bond
-		self.right_bind = right_bond
+		self.left = Side(self, True)
+		self.right = Side(self, False)
 
-	def isTreeAmbiguous(self):
-		return len(self.children) < 3
+	def descentAmbiguity(self):
+		return max(0, len(self.children) - 2)
 
 	def hasSequenceDescent(self):
 		if self.sequence != 'N':
@@ -22,20 +23,11 @@ class Segment(object):
 	def isSequenceJunction(self):
 		return sum(X.hasSequenceDescent() for X in self.children) > 1
 
-	def isSequenceAmbiguous(self):
+	def isLabelAmbiguous(self):
 		return self.sequence == 'N' and self.isSequenceJunction()
 
-	def leftSide(self):
-		return Side(self, True)
-
-	def rightSide(self):
-		return Side(self, False)
-
 	def isBreakendAmbiguous(self):
-		return self.leftSide().isAmbiguous() or self.rightSide().isAmbiguous()
-
-	def isAmbiguous(self):
-		return self.isTreeAmbiguous() or self.isSequenceAmbiguous() or self.isBreakendAmbiguous()
+		return self.leftSide.isAmbiguous() or self.rightSide.isAmbiguous()
 
 	def branchSequence(self):
 		pass
@@ -43,11 +35,20 @@ class Segment(object):
 	def sequenceComplexity(self):
 		return sum(X.branchSequence() != self.sequence for X in self.children)
 
-	def sequenceAncestor2(self):
+	def _ancestor2(self):
 		if self.sequence != 'N' or self.parent is None:
 			return self
 		else:
 			return sequenceAncestor2(self.parent)
 
-	def sequenceAncestor(self):
-		return sequenceAncestor2(self.parent)
+	def ancestor(self):
+		if self.parent is None:
+			return self
+		else:
+			return self.parent._ancestor2()
+
+	def validate(self):
+		assert self.parent is None or self in self.parent.children
+		assert all(self is child.parent for child in self.children)
+		assert self.left.validate()
+		assert self.right.validate()

@@ -234,12 +234,6 @@ def invert(base):
 	else:
 		return 'A'
 
-def mutationStr(base):
-	if base == 'A':
-		return 'T>A'
-	else:
-		return 'A>T'
-
 class Mutation(Operation):
 	"""Deletion branch"""
 	def __init__(self, parent, pos):
@@ -249,8 +243,11 @@ class Mutation(Operation):
 	def _product(self, genome):
 		return genome[:self.pos] + invert(genome[self.pos]) + genome[self.pos + 1:]
 
+	def _mutationStr(self):
+		return self.parent.genome[self.pos] + ">" + self.genome[self.pos]
+
 	def _label(self):
-		return "MUT\t%i\t%s\n%s" % (self.pos, mutationStr(self.genome[self.pos]), str(self.genome))
+		return "MUT\t%i\t%s\n%s" % (self.pos, self.mutationStr(), str(self.genome))
 
 	def _dotBlurb(self):
 		str = "MUT %i,%s" % (self.pos, mutationStr(self.genome[self.pos]))

@@ -9,8 +9,7 @@ class Thread(object):
 
 	def _connectNodes(self):
 		for segmentA, segmentB in zip(self.segments[:-1], self.segments[1:]):
-			segmentA.rightBond = Side(segmentB, True)
-			segmentB.leftBond = Side(segmentA, False)
+			segmentA.right.createBond(segmentB.left)
 
 
 class SequenceThread(Thread):
