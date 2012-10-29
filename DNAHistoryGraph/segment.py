@@ -101,27 +101,20 @@ class Segment(object):
 	## Modules
 	##########################
 	def modules(self, data):
-		print 'SEG'
 		return reduce(lambda X, Y: Y.modules(X), [self.left, self.right], data)
 
 	##########################
 	## Output
 	##########################
 	def dot(self):
-		node = " ".join([str(id(self)), "[ label=", self.sequence, "]"])
-		if self.parent is None:
-			parent = " ".join([str(id(self.parent)), "->", str(id(self))])
-		else:
-			parent = ""
+		lines = [" ".join([str(id(self)), "[ label=", self.sequence, "]"])]
+		if self.parent is not None:
+			lines.append(" ".join([str(id(self.parent)), "->", str(id(self)), "[color=green]"]))
 		if self.left.bond is not None and self < self.left.bond.segment:
-			left = " ".join([str(id(self)), "->", str(id(self.left.bond.segment))])
-		else:
-			left = ""
+			lines.append(" ".join([str(id(self)), "->", str(id(self.left.bond.segment)), "[color=red, arrowhead=none]"]))
 		if self.right.bond is not None and self < self.right.bond.segment:
-			right = " ".join([str(id(self)), "->", str(id(self.right.bond.segment))])
-		else:
-			right = ""
-		return "\n".join([node, parent, left, right])	
+			lines.append(" ".join([str(id(self)), "->", str(id(self.right.bond.segment)), "[color=red, arrowhead=none]"]))
+		return "\n".join(lines)	
 		
 	
 	##########################

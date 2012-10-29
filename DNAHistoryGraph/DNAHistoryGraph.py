@@ -14,6 +14,7 @@ class DNAHistoryGraph(object):
 		assert all(isinstance(X, Segment) for X in self.segments)
 		print len(self.segments), 'INIT'
 		self.eventGraph, self.segmentThreads = self.threads()
+		print len(self.eventGraph)
 		self.timeEventGraph()
 
 	##################################
@@ -110,7 +111,6 @@ class DNAHistoryGraph(object):
 		return sum(X.substitutionCost(lowerBound) for X in self.segments)
 
 	def modules(self):
-		print 'HIST'
 		return reduce(lambda X, Y: Y.modules(X), self.segments, (list(), set()))[0]
 
 	def rearrangementCost(self, lowerBound=True):

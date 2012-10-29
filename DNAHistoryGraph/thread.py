@@ -29,11 +29,11 @@ class SequenceThread(Thread):
 		for segmentA, segmentB in zip(self[:-1], self[1:]):
 			segmentA.right.createBond(segmentB.left)
 
-class CircularThread(Thread):
+class CircularThread(SequenceThread):
 	def __init__(self, iter = None):
 		super(CircularThread, self).__init__(iter)
 		self[0].left.createBond(self[-1].right)
 
 class CircularSequenceThread(CircularThread):
 	def __init__(self, sequence):
-		super(CircularSequenceThread, self).__init__(segment.Segment(sequence = X) for X in str(sequence))
+		super(CircularSequenceThread, self).__init__(sequence)

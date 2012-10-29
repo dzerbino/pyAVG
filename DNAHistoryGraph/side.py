@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import module
+
 class Side(object):
 	""" Segment side in DNA history graph """
 
@@ -16,6 +18,9 @@ class Side(object):
 			self.opposite = self.segment.left
 		if self.opposite is not None:
 			self.opposite.opposite = self
+
+	def __cmp__(self, other):
+		return cmp(id(self), id(other))
 
 	def createBond(self, other):
 		self.bond = other
@@ -70,7 +75,7 @@ class Side(object):
 	def liftedBonds(self):
 		return sum([X._liftedBonds2() for X in self.children()], [])
 
-	def nonTrivialLiftedBonds(self):
+	def nonTrivialLiftedEdges(self):
 		return [X[0] for X in self.liftedBonds() if X[1]]
 
 	##############################
@@ -78,7 +83,7 @@ class Side(object):
 	##############################
 
 	def rearrangementAmbiguity(self):
-		return max(0, len(self.nonTrivialLiftedBonds()) - 1)
+		return max(0, len(self.nonTrivialLiftedEdges()) - 1)
 
 	##############################
 	## Threads
@@ -94,21 +99,23 @@ class Side(object):
 	##############################
 	def _expandModule(self, module):
 		module.sides.add(self)
-		if self.bond not in module.sides:
+		if self.bond is not None and self.bond not in module.sides:
 			self.bond._expandModule(module)
 		for liftedEdge in self.nonTrivialLiftedEdges():
-			if liftedEdge not in module.sides():
-				module.nonTrivialLiftedEdges.add(frozenset(self, liftedEdge))
+			if liftedEdge <= self:
+				module.nonTrivialLiftedEdges.append(frozenset((self, liftedEdge)))
+			if liftedEdge not in module.sides:
 				liftedEdge._expandModule(module)
 
 	def modules(self, data):
 		""" Returns a list of modules and a set of already visited sides """
-		data = modules, visited
+		modules, visited = data
 		if self in visited:
 			return data
 		else:
-			module = self._expandModule(Module())
-			return modules + [module], visited + module.sides
+			M = module.Module()
+			self._expandModule(M)
+			return modules + [M], visited | M.sides
 
 	##############################
 	## Validation

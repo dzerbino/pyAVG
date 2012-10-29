@@ -5,6 +5,7 @@ import random
 
 from pyAVG.DNAHistoryGraph.DNAHistoryGraph import DNAHistoryGraph
 from pyAVG.DNAHistoryGraph.thread import CircularSequenceThread
+from pyAVG.DNAHistoryGraph.thread import Thread
 
 """Produces random evolutionary histories"""
 
@@ -94,10 +95,7 @@ class Operation(HistoryBranch):
 		self.genome = self._product(parent.genome)
 
 	def _operationCost(self):
-		if self._persists():
-			return 1
-		else:
-			return 0
+		return 1
 
 	def threads(self, parentThread):
 		T = CircularSequenceThread(self.genome)
@@ -171,6 +169,19 @@ class Inversion(Operation):
 
 	def _persists(self):
 		return (self._testPosition(self.start) and self._testPosition(self.start + self.length)) or (self._testPosition(self.start - 1) and self._testPosition(self.start + self.length - 1))
+
+	def threads(self, parentThread):
+		T = CircularSequenceThread(self.parent.genome)
+		for segmentA, segmentB in zip(parentThread, T):
+			segmentA.children.add(segmentB)
+			segmentB.parent = segmentA
+		T[self.start].left.createBond(T[(self.start + self.length) % len(T)].left)
+		T[self.start - 1].right.createBond(T[(self.start + self.length - 1) % len(T)].right)
+		T = Thread(T[:self.start] + list(reversed(T[self.start:self.start + self.length])) + T[self.start+self.length:])
+		for pair in zip(self.genome, T):
+			pair[1].sequence = pair[0]
+		
+		return sum([X.threads(T) for X in self.children], []) + [T]
 
 class Duplication(Operation):
 	"""Duplication branch"""
@@ -297,6 +308,9 @@ class Mutation(Operation):
 	def _persists(self):
 		return self._testPosition(self.pos)
 
+	def _operationCost(self):
+		return 0
+
 #########################################
 ## Evolutionary History
 #########################################
@@ -331,7 +345,7 @@ def _addChildBranch(branch):
 
 	if choice < 0.5:
 		Mutation(branch, start)
-	if len(branch.genome) > 1 and choice < 0.8:
+	elif len(branch.genome) > 1 and choice < 0.8:
 		length = random.randrange(1, len(branch.genome))
 		Inversion(branch, start, length)
 	elif len(branch.genome) > 1 and choice < 0.85:
@@ -380,16 +394,15 @@ class RandomHistory(History):
 ## Unit test
 #########################################
 def main():
-	history = RandomHistory(5, 3)
+	history = RandomHistory(10, 10)
 	avg = history.avg()
 	assert avg.validate()
-	print avg.coalescenceAmbiguity()
-	print avg.substitutionAmbiguity()
 	print history
 	print avg.dot()
-	print avg.rearrangementAmbiguity()
-	assert avg.isAVG()
+	print avg.substitutionAmbiguity()
+	print avg.substitutionCost()
 	print history.cost(), avg.rearrangementCost()
+	assert avg.isAVG()
 
 if __name__ == '__main__':
 	main()
