@@ -3,6 +3,11 @@
 from segment import Segment
 
 class Side(object):
+	""" Segment side in DNA history graph """
+
+	##############################
+	## Basics
+	##############################
 	def __init__(self, segment, left):
 		assert isinstance(segment, Segment)
 		self.segment = segment
@@ -13,6 +18,15 @@ class Side(object):
 			self.opposite = self.segment.left
 		if self.opposite is not None:
 			self.opposite.opposite = self
+
+	def createBond(self, other):
+		self.bond = other
+		other.bond = self
+
+	def deleteBond(self):
+		if self.bond is not None:
+			self.bond.bond = None
+			self.bond = None
 
 	def parent(self):
 		if self.segment.parent is not None:
@@ -29,14 +43,11 @@ class Side(object):
 		else:
 			return X.right for X in self.segment.children
 
-	def _isAttached(self):
-		if self.left:
-			return self.segment.leftBond is not None
-		else:
-			return self.segment.rightBond is not None
-
+	##############################
+	## Lifted edges
+	##############################
 	def _ancestor2(self):
-		if self._isAttached() or self.parent() is None:
+		if self.bond is not None or self.parent() is None:
 			return self
 		else:
 			return self.parent._ancestor2()
@@ -47,33 +58,33 @@ class Side(object):
 		else:
 			return self
 
-	def hasSideBreakendDescent(self, left):
-		if left and self.leftBond is not None:
-			return True
-		elif not left and self.rightBond is not None:
-			return False
+	def _liftedBonds2(self):
+		if self.bond is None:
+			liftingBonds = sum([X._liftedBonds2() for X in self.children], [])
+			if len(liftingBonds) < 2:
+				return liftingBonds
+			else:
+				return [(X[0], True) for X in liftingBonds]
 		else:
-			return any(X.hasSideBreakendDescent(left) for X in self.children)
+			target = self.bond.ancestor()
+			return [(target, target is self.ancestor().bond]
 
-	def isAmbiguous(self):
-		if self._isAttached:
-			return False
-		else:
-			return sum(X.hasSideBreakendDescent() for X in self.children()) > 1
+	def liftedBonds(self):
+		return sum([X._liftedBonds2() for X in self.children], [])
 
-	def createBond(self, other):
-		self.bond = other
-		other.bond = self
+	def nonTrivialLiftedBonds(self):
+		return [X[0] for X in self.liftedBonds if X[1]]
 
-	def deleteBond(self):
-		if self.bond is not None:
-			self.bond.bond = None
-			self.bond = None
+	##############################
+	## Ambiguity
+	##############################
 
-	def validate(self):
-		assert self.bond is None or self.bond.bond is self
-		assert self.opposite is not None and self.opposite.opposite is self
+	def rearrangementAmbiguity(self):
+		return max(0, len(self.nonTrivialLiftedBonds()) - 1)
 
+	##############################
+	## Threads
+	##############################
 	def pursue(self, start):
 		if self.bond is None:
 			return self
@@ -82,3 +93,31 @@ class Side(object):
 			return self
 		else:
 			return next.pursue(start)
+
+	##############################
+	## Modules
+	##############################
+	def _expandModule(self, module):
+		module.sides.add(self)
+		if self.bond not in module.sides:
+			self.bond._expandModule(module)
+		for liftedEdge in self.nonTrivialLiftedEdges():
+			if liftedEdge not in module.sides():
+				module.nonTrivialLiftedEdges.add(frozenset(self, liftedEdge))
+				liftedEdge._expandModule(module)
+
+	def modules(self, data):
+		""" Returns a list of modules and a set of already visited sides """
+		data = modules, visited
+		if self in visited:
+			return data
+		else:
+			module = self._expandModule(Module())
+			return modules + [module], visited + module.sides
+
+	##############################
+	## Validation
+	##############################
+	def validate(self):
+		assert self.bond is None or self.bond.bond is self
+		assert self.opposite is not None and self.opposite.opposite is self

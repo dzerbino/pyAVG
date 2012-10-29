@@ -4,11 +4,11 @@ pyAVG
 AVG sampler prototype
 
 Implementation of the DNA history data structure. Currently, implementation of the definition:
-- Structure
-- Ambiguity evaluation
-- Complexity evaluation
-- Output: Graphviz, d3?
+- Structure (nearly there)
+- Ambiguity evaluation (done)
+- Complexity evaluation (done)
+- Random generation (done)
+- Output: Graphviz, d3? (todo)
 
 Later:
-- Random generation
 - Sampling of AVG extensions
