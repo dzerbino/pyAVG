@@ -88,8 +88,9 @@ class Segment(object):
 			thread = self._expandThread(Thread())
 			for segment in thread:
 				segmentThreads[segment] = thread
+			threads.add(thread)
 
-			return threads + [thread], segmentThreads
+			return threads, segmentThreads
 
 	##########################
 	## Modules

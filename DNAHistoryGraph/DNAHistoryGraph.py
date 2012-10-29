@@ -14,20 +14,70 @@ class DNAHistoryGraph(object):
 	def __init__(self, segments):
 		assert all(isinstance(X, Segment) for X in segments)
 		self.segments = list(segments)
-		self.threads, self.segmentThreads = self.threads()
-		self.eventGraph = self.createEventGraph()
+		self.eventGraph, self.segmentThreads = self.threads()
+		self.timeEventGraph()
 
 	##################################
 	## Online acyclicity verification
 	##################################
 	def threads(self):
-		return reduce(lambda X, Y: Y.threads(X), self.segments, (list(), set()))[0]
+		return reduce(lambda X, Y: Y.threads(X), self.segments, (PartialOrderSet(), dict()))[0]
 
 	def createEventGraph(self):
-		eventGraph = PartialOrderSet(self.threads)
-		for segment in self.segments:
-			assert self.addConstraint(self.segmentThreads[segment.parent], self.segmentThreads[segment])
+		for segment in self.timeEventGraph.elements:
+			self.addConstraint(self.segmentThreads[segment.parent], self.segmentThreads[segment])
 		return eventGraph
+
+	def createBond(self, sideA, sideB):
+		if sideA.bond is not None and sideA.bond is not sideB:
+			self.deleteBond(sideA)
+		sideA.createBond(sideB)
+		if sideB.segmentThread[sideB] is not self.segmentThreads[sideA]:
+			oldThread = self.segmentThreads[sideA]
+			oldThread2 = self.segmentThreads[sideB]
+			thread = sideA.segment.expandThread(Thread())
+
+			# Updating self.segmentThreads
+			for segment in thread:
+				self.segmentThreads[segment] = thread
+
+			# Updating self.eventGraph
+			self.eventGraph.pop(oldThread)
+			self.eventGraph.pop(oldThread2)
+			self.eventGraph.addElement(thread)
+			for segment in thread:
+				self.eventGraph.addConstraint(self.segmentThreads[segment.parent], thread)
+				for child in segment.children:
+					self.eventGraph.addConstraint(thread, self.segmentThreads[child])
+		
+	def deleteBond(self, sideA):
+		sideB = sideA.bond
+		sideA.deleteBond()
+		if sideB is not None:
+			thread = sideA.segment.expandThread(Thread())
+			if sideB not in thread:
+				oldThread = self.segmentThreads[sideA]
+				thread2 = sideB.segment.expandThread(Thread())
+
+				# Updating self.segmentThreads
+				for segment in thread:
+					self.segmentThreads[segment] = thread
+				for segment in thread2:
+					self.segmentThreads[segment] = thread2
+
+				# Updating self.eventGraph
+				self.eventGraph.pop(oldThread)
+				self.eventGraph.addElement(thread)
+				self.eventGraph.addElement(thread2)
+				for segment in thread:
+					self.eventGraph.addConstraint(self.segmentThreads[segment.parent], thread)
+					for child in segment.children:
+						self.eventGraph.addConstraint(thread, self.segmentThreads[child])
+				for segment in thread2:
+					self.eventGraph.addConstraint(self.segmentThreads[segment.parent], thread2)
+					for child in segment.children:
+						self.eventGraph.addConstraint(thread2, self.segmentThreads[child])
+
 
 	##################################
 	## Ambiguity

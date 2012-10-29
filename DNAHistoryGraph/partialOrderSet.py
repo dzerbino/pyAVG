@@ -1,25 +1,27 @@
 #!/sur/bin/env python
 
+from exceptions import RuntimeError
+
 """Definition of Partial Order Set"""
 
-class PartialOrderSet(object):
+class PartialOrderSet(set):
 	"""Partially ordered set (poset) with online global ordering of its elements"""
 
 	###################################
 	## Basics
 	###################################
-	def __init__(self, iter=None):
+	def __init__(self, iter=[]):
 		""" Creates an unconstrained Poset with the elements of iter (if provided) """
+		super(PartialOrderSet, self).__init__(iter)
 		self.roots = set()
-		self.elements = list()
 		self.parents = dict()
 		self.children = dict()
 		self.depth = dict()
 		if iter is not None:
-			map(lambda X: self.addElement(X), iter)
+			map(lambda X: self.add(X), iter)
 	
 	def __copy__(self):
-		new = PartialOrderSet(self.elements)
+		new = PartialOrderSet(self)
 		new.roots = copy.copy(self.roots)
 		new.parents = copy.copy(self.parents)
 		new.children = copy.copy(self.children)
@@ -29,21 +31,21 @@ class PartialOrderSet(object):
 	###################################
 	## Adding stuff
 	###################################
-	def addElement(self, element):
+	def add(self, element):
 		"""Adds an unconstrained element to the set"""
-		self.elements.append(element)
+		super(PartialOrderSet, self).add(element)
 		self.roots.add(element)
 		self.parents[element] = set()
 		self.children[element] = set()
-		self.depth[element] = len(self.elements)
+		self.depth[element] = len(self)
 
 	def _addEdge(self, ancestral, derived):
 		"""Adds an order constraint between two elements (low level)"""
 		if ancestral is None or derived is None:
 			return
 		else:
-			assert ancestral in self.elements
-			assert derived in self.elements
+			assert ancestral in self
+			assert derived in self
 			if derived in self.roots:
 				self.roots.remove(derived)
 			self.parents[derived].add(ancestral)
@@ -59,7 +61,7 @@ class PartialOrderSet(object):
 		else:
 			return oldDepth - 1
 
-	def pop(self, elem):
+	def remove(self, elem):
 		"""Removes element from a poset and all the incident constraints"""
 		if elem in self.roots:
 			self.roots.remove(elem)
@@ -75,7 +77,7 @@ class PartialOrderSet(object):
 		depth = self.depth[elem]
 		del self.depth[elem]
 		self.depths = dict((X, self._correctedDepth(X, depth)) for X in self.depth)
-		self.elements.remove(elem)
+		self.remove(elem)
 		return elem
 
 	####################################################
@@ -118,9 +120,9 @@ class PartialOrderSet(object):
 
 	def addConstraint(self, ancestral, derived):
 		"""Adds an ordering constraint between two elements in the set, updating the ordering if necessary. Refuses the addition and returns False if a contradiction would be created by the addition."""
-		if ancestral not in self.elements:
+		if ancestral not in self:
 			self.addElement(ancestral)
-		if derived not in self.elements:
+		if derived not in self:
 			self.addElement(derived)
 
 		lower = self.depth[derived]
@@ -130,16 +132,14 @@ class PartialOrderSet(object):
 			RForward = self._dfsForward(derived, upper)
 			if RForward is None:
 				# Oops, just created a self loop
-				return False
+				raise RuntimeError
 			else:
 				RBackward = self._dfsBackward(ancestral, lower)
 				self._reassign(RForward, RBackward)
 				self._addEdge(ancestral, derived)
-				return True
 		else:
 			# No need to change anything
 			self._addEdge(ancestral, derived)
-			return True
 
 	################################################
 	## Removal of constraint
@@ -147,39 +147,34 @@ class PartialOrderSet(object):
 	def removeConstraint(self, parent, child):
 		"""Removes an ordering constraint between two elements in the set"""
 		self.parents[child].remove(parent)
-		if len(self.children[child]) == 0 and len(self.parents[child]) == 0:
-			self.pop(child)
-		elif len(self.parents[child]) == 0:
+		if len(self.parents[child]) == 0:
 			self.roots.add(child)
-
-		if len(self.children[parent]) == 0 and len(self.parents[parent]) == 0:
-			self.pop(parent)
 
 	################################################
 	## Validate
 	################################################
 	def _validateChildren(self):
-		assert all(X in self.elements for X in self.children)
+		assert all(X in self for X in self.children)
 		for X in self.children:
 			for Y in self.children[X]:
-				Y in self.elements
+				Y in self
 				X in self.parents[Y]
 				self.depth[Y] > self.depth[X]
 
 	def _validateParents(self):
-		assert all(X in self.elements for X in self.parents)
+		assert all(X in self for X in self.parents)
 		for X in self.parents:
 			for Y in self.parents[X]:
-				Y in self.elements
+				Y in self
 				X in self.children[Y]
 				self.depth[Y] < self.depth[X]
 
 	def _validateRoots(self):
-		assert all(X in self.elements for X in self.roots)
+		assert all(X in self for X in self.roots)
 		assert all(len(self.parents[X]) == 0 for X in self.roots)
 
 	def _validateDepth(self):
-		assert all(X in self.elements for X in self.depth)
+		assert all(X in self for X in self.depth)
 
 	def validate(self):
 		"""
@@ -196,14 +191,18 @@ class PartialOrderSet(object):
 ###########################################
 def test_main():
 	pos = PartialOrderSet()
-	pos.addElement(2)
-	pos.addElement(3)
-	pos.addElement(1)
-	assert pos.addConstraint(1,2) == True
-	assert pos.addConstraint(2,3) == True
-	assert pos.addConstraint(1,3) == True
-	assert pos.addConstraint(3,1) == False
-	assert pos.validate()
+	pos.add(2)
+	pos.add(3)
+	pos.add(1)
+	pos.addConstraint(1,2)
+	pos.addConstraint(2,3)
+	pos.addConstraint(1,3)
+	try:
+		pos.addConstraint(3,1)
+	except RuntimeError:
+		assert pos.validate()
+		return
+	assert False
 	
 if __name__ == "__main__":
-	main()
+	test_main()
