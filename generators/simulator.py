@@ -8,7 +8,7 @@ from pyAVG.DNAHistoryGraph.thread import CircularSequenceThread
 
 """Produces random evolutionary histories"""
 
-BRANCHPROB = 0.1
+BRANCHPROB = 0
 """ Probability that a branch point occurs at a given node """
 
 class HistoryBranch(object):
@@ -78,7 +78,7 @@ class InitialBranch(HistoryBranch):
 
 	def threads(self):
 		T = CircularSequenceThread(self.genome)
-		return sum(X.threads(T) for X in self.children)
+		return sum([X.threads(T) for X in self.children], []) + [T]
 
 #########################################
 ## Transformation branches
@@ -104,7 +104,7 @@ class Operation(HistoryBranch):
 		for segmentA, segmentB in zip(parentThread, T):
 			segmentA.children.add(segmentB)
 			segmentB.parent = segmentA
-		return sum(X.threads(T) for X in self.children, []) + [T]
+		return sum([X.threads(T) for X in self.children], []) + [T]
 
 class Identity(Operation):
 	"""Nothing happens"""
@@ -126,6 +126,15 @@ class Identity(Operation):
 	def _persists(self):
 		return True
 
+def complement(base):
+	if base == 'A':
+		return 'T'
+	else:
+		return 'A'
+
+def revcomp(sequence):
+	return reversed(map(complement, sequence))
+
 class Inversion(Operation):
 	"""Inversion branch"""
 	def __init__(self, parent, start, length):
@@ -135,9 +144,9 @@ class Inversion(Operation):
 
 	def _product(self, genome):
 		if self.start + self.length < len(genome):
-			return genome[:self.start] + [-X for X in reversed(genome[self.start:self.start+self.length])] + genome[self.start + self.length:]
+			return genome[:self.start] + "".join(revcomp(genome[self.start:self.start+self.length])) + genome[self.start + self.length:]
 		else:
-			return genome[:self.start + self.length - len(genome)] + [-X for X in reversed(genome[self.start + self.length - len(genome):self.start])] + genome[self.start:]
+			return genome[:self.start + self.length - len(genome)] + "".join(revcomp(genome[self.start + self.length - len(genome):self.start])) + genome[self.start:]
 
 	def _label(self):
 		return "INV\t%i\t%i\n%s" % (self.start, self.length, str(self.genome))
@@ -209,7 +218,7 @@ class Duplication(Operation):
 		for segmentA, segmentB in zip(parentThread[self.start:], T[self.start + self.length:]):
 			segmentA.children.add(segmentB)
 			segmentB.parent = segmentA
-		return sum(X.threads(T) for X in self.children, []) + [T]
+		return sum([X.threads(T) for X in self.children], []) + [T]
 
 class Deletion(Operation):
 	"""Deletion branch"""
@@ -259,17 +268,9 @@ class Deletion(Operation):
 			segmentA.children.add(segmentB)
 			segmentB.parent = segmentA
 
-		T[self.start].leftBond = T[self.start + self.length].leftSide()
-		T[self.start + self.length].leftBond = T[self.start].leftSide()
-		T[self.start + self.length - 1].rightBond = T[self.start - 1].rightSide()
-		T[self.start - 1].rightBond = T[self.start + self.length - 1].rightSide()
-		return sum(X.threads(T) for X in self.children, []) + [T]
-
-def invert(base):
-	if base == 'A':
-		return 'T'
-	else:
-		return 'A'
+		T[self.start].left.createBond(T[(self.start + self.length) % len(T)].left)
+		T[(self.start + self.length - 1) % len(T)].right.createBond(T[self.start - 1].right)
+		return sum([X.threads(T) for X in self.children], []) + [T]
 
 class Mutation(Operation):
 	"""Deletion branch"""
@@ -278,20 +279,23 @@ class Mutation(Operation):
 		super(Mutation, self).__init__(parent)
 
 	def _product(self, genome):
-		return genome[:self.pos] + invert(genome[self.pos]) + genome[self.pos + 1:]
+		return genome[:self.pos] + complement(genome[self.pos]) + genome[self.pos + 1:]
 
 	def _mutationStr(self):
 		return self.parent.genome[self.pos] + ">" + self.genome[self.pos]
 
 	def _label(self):
-		return "MUT\t%i\t%s\n%s" % (self.pos, self.mutationStr(), str(self.genome))
+		return "MUT\t%i\t%s\n%s" % (self.pos, self._mutationStr(), str(self.genome))
 
 	def _dotBlurb(self):
-		str = "MUT %i,%s" % (self.pos, mutationStr(self.genome[self.pos]))
+		str = "MUT %i,%s" % (self.pos, _mutationStr(self.genome[self.pos]))
 		if self._persists():
 			return str
 		else:
 			return "*" + str
+
+	def _persists(self):
+		return self._testPosition(self.pos)
 
 #########################################
 ## Evolutionary History
@@ -316,7 +320,7 @@ class History(object):
 		return self.root._dot()
 
 	def avg(self):
-		return DNAHistoryGraph(S for T in self.root.threads() for S in T.segments)
+		return DNAHistoryGraph(S for T in self.root.threads() for S in T)
 
 #########################################
 ## Random Evolutionary History
@@ -370,14 +374,22 @@ class RandomHistory(History):
 	def __init__(self, length, maxDepth):
 		root = InitialBranch(length)
 		_extendHistory(root, maxDepth)
-		super(RandomHistory, self).__init__(root, None)
+		super(RandomHistory, self).__init__(root)
 
 #########################################
 ## Unit test
 #########################################
 def main():
 	history = RandomHistory(5, 3)
-	print history.dot()
+	avg = history.avg()
+	assert avg.validate()
+	print avg.coalescenceAmbiguity()
+	print avg.substitutionAmbiguity()
+	print history
+	print avg.dot()
+	print avg.rearrangementAmbiguity()
+	assert avg.isAVG()
+	print history.cost(), avg.rearrangementCost()
 
 if __name__ == '__main__':
 	main()

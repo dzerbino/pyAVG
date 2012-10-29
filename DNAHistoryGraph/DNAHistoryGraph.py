@@ -3,17 +3,16 @@
 from segment import Segment
 from partialOrderSet import PartialOrderSet
 
-def createEventGraph(segments):
-
 class DNAHistoryGraph(object):
 	""" DNA History graph """
 
 	##################################
 	## Basics
 	##################################
-	def __init__(self, segments):
-		assert all(isinstance(X, Segment) for X in segments)
+	def __init__(self, segments=[]):
 		self.segments = list(segments)
+		assert all(isinstance(X, Segment) for X in self.segments)
+		print len(self.segments), 'INIT'
 		self.eventGraph, self.segmentThreads = self.threads()
 		self.timeEventGraph()
 
@@ -21,14 +20,20 @@ class DNAHistoryGraph(object):
 	## Online acyclicity verification
 	##################################
 	def threads(self):
-		return reduce(lambda X, Y: Y.threads(X), self.segments, (PartialOrderSet(), dict()))[0]
+		""" Computes tuples (PartialOrderSet X, dict Y) which contains X) graph threads (no ordering) and Y) segment to thread mapping """
+		return reduce(lambda X, Y: Y.threads(X), self.segments, (PartialOrderSet(), dict()))
 
-	def createEventGraph(self):
-		for segment in self.timeEventGraph.elements:
-			self.addConstraint(self.segmentThreads[segment.parent], self.segmentThreads[segment])
-		return eventGraph
+	def timeEventGraph(self):
+		""" Adds timing constraints to unordered set of threads """	
+		assert all(X.parent in self.segments for X in self.segments if X.parent is not None)
+		assert all(X.parent in self.segmentThreads for X in self.segments if X.parent is not None)
+		assert all(X in self.segmentThreads for X in self.segments)
+		for segment in self.segments:
+			if segment.parent is not None:
+				self.eventGraph.addConstraint(self.segmentThreads[segment.parent], self.segmentThreads[segment])
 
 	def createBond(self, sideA, sideB):
+		""" Creates bond between two sides and throws RuntimeError if cycle created """
 		if sideA.bond is not None and sideA.bond is not sideB:
 			self.deleteBond(sideA)
 		sideA.createBond(sideB)
@@ -51,6 +56,7 @@ class DNAHistoryGraph(object):
 					self.eventGraph.addConstraint(thread, self.segmentThreads[child])
 		
 	def deleteBond(self, sideA):
+		""" Deletes bond between two sides and updates event graph """
 		sideB = sideA.bond
 		sideA.deleteBond()
 		if sideB is not None:
@@ -92,7 +98,7 @@ class DNAHistoryGraph(object):
 		return sum(segment.rearrangementAmbiguity() for segment in self.segments)
 	
 	def ambiguity(self):
-		return self.descentAmbiguity() + self.labelAmbiguity() + self.rearrangementAmbiguity()
+		return self.coalescenceAmbiguity() + self.substitutionAmbiguity() + self.rearrangementAmbiguity()
 
 	def isAVG(self):
 		return self.ambiguity() == 0
@@ -103,11 +109,18 @@ class DNAHistoryGraph(object):
 	def substitutionCost(self, lowerBound=True):
 		return sum(X.substitutionCost(lowerBound) for X in self.segments)
 
-	def modules():
+	def modules(self):
+		print 'HIST'
 		return reduce(lambda X, Y: Y.modules(X), self.segments, (list(), set()))[0]
 
 	def rearrangementCost(self, lowerBound=True):
 		return sum(X.rearrangementCost(lowerBound) for X in self.modules())
+
+	##################################
+	## Output
+	##################################
+	def dot(self):
+		return "\n".join(["digraph G {"] + [X.dot() for X in self.eventGraph] + ["}"])
 
 	##################################
 	## Validation
@@ -115,3 +128,4 @@ class DNAHistoryGraph(object):
 	def validate(self):
 		assert all(X.validate() for X in self.segments)
 		assert self.eventGraph.validate()
+		return True

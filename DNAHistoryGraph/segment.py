@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from side import Side
+import side
+from thread import Thread
 
 class Segment(object):
 	""" DNA history segment """
@@ -10,11 +11,15 @@ class Segment(object):
 	##########################
 	def __init__(self, sequence=None, parent = None, children = []):
 		self.sequence = str(sequence)[:1]
-		assert isinstance(parent, Segment)
+		assert parent is None or isinstance(parent, Segment)
 		self.parent = parent
 		self.children = set(children)
-		self.left = Side(self, True)
-		self.right = Side(self, False)
+		self.right = None
+		self.left = side.Side(self, True)
+		self.right = side.Side(self, False)
+
+	def __cmp__(self, other):
+		return cmp(id(self), id(other))
 
 	##########################
 	## Lifted labels
@@ -74,18 +79,18 @@ class Segment(object):
 	## Threads
 	##########################
 	def expandThread(self, thread):
-		if self in thread.segments:
+		if self in thread:
 			return thread
 		else:
-			thread.segments.add(self)
+			thread.append(self)
 			return self.left.expandThread(self.right.expandThread(thread))
 
 	def threads(self, data):
-		threads, segmentThreads = data:
+		threads, segmentThreads = data
 		if self in segmentThreads:
 			return data
 		else:
-			thread = self._expandThread(Thread())
+			thread = self.expandThread(Thread())
 			for segment in thread:
 				segmentThreads[segment] = thread
 			threads.add(thread)
@@ -96,8 +101,29 @@ class Segment(object):
 	## Modules
 	##########################
 	def modules(self, data):
+		print 'SEG'
 		return reduce(lambda X, Y: Y.modules(X), [self.left, self.right], data)
 
+	##########################
+	## Output
+	##########################
+	def dot(self):
+		node = " ".join([str(id(self)), "[ label=", self.sequence, "]"])
+		if self.parent is None:
+			parent = " ".join([str(id(self.parent)), "->", str(id(self))])
+		else:
+			parent = ""
+		if self.left.bond is not None and self < self.left.bond.segment:
+			left = " ".join([str(id(self)), "->", str(id(self.left.bond.segment))])
+		else:
+			left = ""
+		if self.right.bond is not None and self < self.right.bond.segment:
+			right = " ".join([str(id(self)), "->", str(id(self.right.bond.segment))])
+		else:
+			right = ""
+		return "\n".join([node, parent, left, right])	
+		
+	
 	##########################
 	## Validation
 	##########################
@@ -106,3 +132,4 @@ class Segment(object):
 		assert all(self is child.parent for child in self.children)
 		assert self.left.validate()
 		assert self.right.validate()
+		return True

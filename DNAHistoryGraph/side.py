@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from segment import Segment
-
 class Side(object):
 	""" Segment side in DNA history graph """
 
@@ -9,9 +7,9 @@ class Side(object):
 	## Basics
 	##############################
 	def __init__(self, segment, left):
-		assert isinstance(segment, Segment)
 		self.segment = segment
 		self.left = bool(left)
+		self.bond = None
 		if self.left:
 			self.opposite = self.segment.right
 		else:
@@ -39,9 +37,9 @@ class Side(object):
 
 	def children(self):
 		if self.left:
-			return X.left for X in self.segment.children
+			return [X.left for X in self.segment.children]
 		else:
-			return X.right for X in self.segment.children
+			return [X.right for X in self.segment.children]
 
 	##############################
 	## Lifted edges
@@ -50,30 +48,30 @@ class Side(object):
 		if self.bond is not None or self.parent() is None:
 			return self
 		else:
-			return self.parent._ancestor2()
+			return self.parent()._ancestor2()
 
 	def ancestor(self):
 		if self.parent() is None:
-			return self.parent()._ancestor2()
-		else:
 			return self
+		else:
+			return self.parent()._ancestor2()
 
 	def _liftedBonds2(self):
 		if self.bond is None:
-			liftingBonds = sum([X._liftedBonds2() for X in self.children], [])
+			liftingBonds = sum([X._liftedBonds2() for X in self.children()], [])
 			if len(liftingBonds) < 2:
 				return liftingBonds
 			else:
 				return [(X[0], True) for X in liftingBonds]
 		else:
 			target = self.bond.ancestor()
-			return [(target, target is self.ancestor().bond]
+			return [(target, target is not self.ancestor().bond)]
 
 	def liftedBonds(self):
-		return sum([X._liftedBonds2() for X in self.children], [])
+		return sum([X._liftedBonds2() for X in self.children()], [])
 
 	def nonTrivialLiftedBonds(self):
-		return [X[0] for X in self.liftedBonds if X[1]]
+		return [X[0] for X in self.liftedBonds() if X[1]]
 
 	##############################
 	## Ambiguity
@@ -118,3 +116,4 @@ class Side(object):
 	def validate(self):
 		assert self.bond is None or self.bond.bond is self
 		assert self.opposite is not None and self.opposite.opposite is self
+		return True
