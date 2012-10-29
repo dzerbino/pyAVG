@@ -85,14 +85,11 @@ class Side(object):
 	##############################
 	## Threads
 	##############################
-	def pursue(self, start):
+	def expandThread(self, thread):
 		if self.bond is None:
-			return self
-		next = self.bond.opposite
-		if next is start:
-			return self
+			return thread
 		else:
-			return next.pursue(start)
+			return self.bond.segment.expandThread(thread)
 
 	##############################
 	## Modules

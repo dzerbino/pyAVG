@@ -71,6 +71,27 @@ class Segment(object):
 			return len(self.nonTrivialLiftedLabels())
 
 	##########################
+	## Threads
+	##########################
+	def expandThread(self, thread):
+		if self in thread.segments:
+			return thread
+		else:
+			thread.segments.add(self)
+			return self.left.expandThread(self.right.expandThread(thread))
+
+	def threads(self, data):
+		threads, segmentThreads = data:
+		if self in segmentThreads:
+			return data
+		else:
+			thread = self._expandThread(Thread())
+			for segment in thread:
+				segmentThreads[segment] = thread
+
+			return threads + [thread], segmentThreads
+
+	##########################
 	## Modules
 	##########################
 	def modules(self, data):
