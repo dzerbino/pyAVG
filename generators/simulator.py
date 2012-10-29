@@ -3,6 +3,9 @@
 import sys
 import random
 
+from pyAVG.DNAHistoryGraph.DNAHistoryGraph import DNAHistoryGraph
+from pyAVG.DNAHistoryGraph.thread import CircularSequenceThread
+
 """Produces random evolutionary histories"""
 
 BRANCHPROB = 0.1
@@ -73,6 +76,10 @@ class InitialBranch(HistoryBranch):
 	def _operationCost(self):
 		return 0
 
+	def threads(self):
+		T = CircularSequenceThread(self.genome)
+		return sum(X.threads(T) for X in self.children)
+
 #########################################
 ## Transformation branches
 #########################################
@@ -91,6 +98,13 @@ class Operation(HistoryBranch):
 			return 1
 		else:
 			return 0
+
+	def threads(self, parentThread):
+		T = CircularSequenceThread(self.genome)
+		for segmentA, segmentB in zip(parentThread, T):
+			segmentA.children.add(segmentB)
+			segmentB.parent = segmentA
+		return sum(X.threads(T) for X in self.children, []) + [T]
 
 class Identity(Operation):
 	"""Nothing happens"""
@@ -187,6 +201,16 @@ class Duplication(Operation):
 	def _persists(self):
 		return any(self._testPosition(X) for X in range(self.start, self.start + self.length))
 
+	def threads(self, parentThread):
+		T = CircularSequenceThread(self.genome)
+		for segmentA, segmentB in zip(parentThread[:self.start+self.length], T[:self.start+self.length]):
+			segmentA.children.add(segmentB)
+			segmentB.parent = segmentA
+		for segmentA, segmentB in zip(parentThread[self.start:], T[self.start + self.length:]):
+			segmentA.children.add(segmentB)
+			segmentB.parent = segmentA
+		return sum(X.threads(T) for X in self.children, []) + [T]
+
 class Deletion(Operation):
 	"""Deletion branch"""
 	def __init__(self, parent, start, length):
@@ -227,6 +251,19 @@ class Deletion(Operation):
 
 	def _persists(self):
 		return self._testPosition(self.start - 1) or self._testPosition(self.start + self.length)
+
+	def threads(self, parentThread):
+		T = CircularSequenceThread(self.parent.genome)
+
+		for segmentA, segmentB in zip(parentThread, T):
+			segmentA.children.add(segmentB)
+			segmentB.parent = segmentA
+
+		T[self.start].leftBond = T[self.start + self.length].leftSide()
+		T[self.start + self.length].leftBond = T[self.start].leftSide()
+		T[self.start + self.length - 1].rightBond = T[self.start - 1].rightSide()
+		T[self.start - 1].rightBond = T[self.start + self.length - 1].rightSide()
+		return sum(X.threads(T) for X in self.children, []) + [T]
 
 def invert(base):
 	if base == 'A':
@@ -281,6 +318,9 @@ class History(object):
 		""" GraphViz output """
 		return self.root._dot()
 
+	def avg(self):
+		return DNAHistoryGraph(S for T in self.root.threads() for S in T.segments)
+
 #########################################
 ## Random Evolutionary History
 #########################################
@@ -329,7 +369,7 @@ def _extendHistory(branch, counter):
 	if counter > 1:
 		map(lambda X: _extendHistory(X, counter - 1), branch.children)
 
-class RandomHistory(WeightedHistory):
+class RandomHistory(History):
 	def __init__(self, length, maxDepth):
 		root = InitialBranch(length)
 		_extendHistory(root, maxDepth)
@@ -339,7 +379,7 @@ class RandomHistory(WeightedHistory):
 ## Unit test
 #########################################
 def main():
-	history = RandomWeightedHistory(5, 3)
+	history = RandomHistory(5, 3)
 	print history.dot()
 
 if __name__ == '__main__':
