@@ -9,8 +9,8 @@ class Thread(object):
 
 	def _connectNodes(self):
 		for segmentA, segmentB in zip(self.segments[:-1], self.segments[1:]):
-			segmentA.rightBond = segmentB.leftSide()
-			segmentB.leftBond = segmentA.rightSide()
+			segmentA.right.createBond(segmentB.left)
+
 
 class SequenceThread(Thread):
 	def __init__(self, sequence):
@@ -19,8 +19,7 @@ class SequenceThread(Thread):
 class CircularThread(Thread):
 	def __init__(self, iter = None):
 		super(CircularThread, self).__init__(iter)
-		self.segments[0].leftBond = self.segments[-1].rightSide()
-		self.segments[-1].rightBond = self.segments[0].leftSide()
+		self.segments[0].left.createBond(segmentB.segments[-1].right)
 
 class CircularSequenceThread(CircularThread):
 	def __init__(self, sequence):
