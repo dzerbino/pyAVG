@@ -21,6 +21,9 @@ class Segment(object):
 	def __cmp__(self, other):
 		return cmp(id(self), id(other))
 
+	def __copy__(self):
+		return Segment(self.sequence)
+
 	##########################
 	## Lifted labels
 	##########################
@@ -78,19 +81,18 @@ class Segment(object):
 	##########################
 	## Threads
 	##########################
-	def expandThread(self, thread):
-		if self in thread:
-			return thread
-		else:
-			thread.append(self)
-			return self.left.expandThread(self.right.expandThread(thread))
+	def thread(self):
+		thread = Thread([(self, True)])
+		thread.expandLeft()
+		thread.expandRight()
+		return thread
 
 	def threads(self, data):
 		threads, segmentThreads = data
 		if self in segmentThreads:
 			return data
 		else:
-			thread = self.expandThread(Thread())
+			thread = self.thread()
 			for segment in thread:
 				segmentThreads[segment] = thread
 			threads.add(thread)

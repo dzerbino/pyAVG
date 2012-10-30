@@ -86,15 +86,6 @@ class Side(object):
 		return max(0, len(self.nonTrivialLiftedEdges()) - 1)
 
 	##############################
-	## Threads
-	##############################
-	def expandThread(self, thread):
-		if self.bond is None:
-			return thread
-		else:
-			return self.bond.segment.expandThread(thread)
-
-	##############################
 	## Modules
 	##############################
 	def _expandModule(self, module):

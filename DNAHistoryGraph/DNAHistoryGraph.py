@@ -41,7 +41,7 @@ class DNAHistoryGraph(object):
 		if sideB.segmentThread[sideB] is not self.segmentThreads[sideA]:
 			oldThread = self.segmentThreads[sideA]
 			oldThread2 = self.segmentThreads[sideB]
-			thread = sideA.segment.expandThread(Thread())
+			thread = sideA.segment.thread()
 
 			# Updating self.segmentThreads
 			for segment in thread:

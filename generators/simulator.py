@@ -2,6 +2,7 @@
 
 import sys
 import random
+import copy
 
 from pyAVG.DNAHistoryGraph.DNAHistoryGraph import DNAHistoryGraph
 from pyAVG.DNAHistoryGraph.thread import CircularSequenceThread
@@ -98,11 +99,15 @@ class Operation(HistoryBranch):
 		return 1
 
 	def threads(self, parentThread):
-		T = CircularSequenceThread(self.genome)
+		T = copy.copy(parentThread)
 		for segmentA, segmentB in zip(parentThread, T):
-			segmentA.children.add(segmentB)
-			segmentB.parent = segmentA
+			segmentA[0].children.add(segmentB)
+			segmentB[0].parent = segmentA
+		T = self.modifyThread(T)
 		return sum([X.threads(T) for X in self.children], []) + [T]
+
+	def modifyThread(self, thread):
+		return thread
 
 class Identity(Operation):
 	"""Nothing happens"""
@@ -170,19 +175,17 @@ class Inversion(Operation):
 	def _persists(self):
 		return (self._testPosition(self.start) and self._testPosition(self.start + self.length)) or (self._testPosition(self.start - 1) and self._testPosition(self.start + self.length - 1))
 
-	def threads(self, parentThread):
-		T = CircularSequenceThread(self.parent.genome)
+	def modifyThread(self, thread):
+		T = copy.copy(parentThread)
 		for segmentA, segmentB in zip(parentThread, T):
-			segmentA.children.add(segmentB)
-			segmentB.parent = segmentA
+			segmentA[0].children.add(segmentB[0])
+			segmentB[0].parent = segmentA[0]
 		T[self.start].left.createBond(T[(self.start + self.length) % len(T)].left)
 		T[self.start - 1].right.createBond(T[(self.start + self.length - 1) % len(T)].right)
-		T = Thread(T[:self.start] + list(reversed(T[self.start:self.start + self.length])) + T[self.start+self.length:])
+		T = Thread(T[:self.start] + [(X[0], not X[1]) for X in reversed(T[self.start:self.start + self.length])] + T[self.start+self.length:])
 		for pair in zip(self.genome, T):
 			pair[1].sequence = pair[0]
 		
-		return sum([X.threads(T) for X in self.children], []) + [T]
-
 class Duplication(Operation):
 	"""Duplication branch"""
 	def __init__(self, parent, start, length):
@@ -221,15 +224,13 @@ class Duplication(Operation):
 	def _persists(self):
 		return any(self._testPosition(X) for X in range(self.start, self.start + self.length))
 
-	def threads(self, parentThread):
-		T = CircularSequenceThread(self.genome)
-		for segmentA, segmentB in zip(parentThread[:self.start+self.length], T[:self.start+self.length]):
-			segmentA.children.add(segmentB)
-			segmentB.parent = segmentA
-		for segmentA, segmentB in zip(parentThread[self.start:], T[self.start + self.length:]):
-			segmentA.children.add(segmentB)
-			segmentB.parent = segmentA
-		return sum([X.threads(T) for X in self.children], []) + [T]
+	def modifyThread(self, T):
+		duplicate = copy.copy(T)
+		for segmentA, segmentB in zip(T, duplicate):
+			segmentA[0].parent.children.add(segmentB[0])
+			segmentB[0].parent = segmentA[0].parent
+		
+		return newThread
 
 class Deletion(Operation):
 	"""Deletion branch"""
@@ -273,7 +274,7 @@ class Deletion(Operation):
 		return self._testPosition(self.start - 1) or self._testPosition(self.start + self.length)
 
 	def threads(self, parentThread):
-		T = CircularSequenceThread(self.parent.genome)
+		T = copy.copy(parentThread)
 
 		for segmentA, segmentB in zip(parentThread, T):
 			segmentA.children.add(segmentB)

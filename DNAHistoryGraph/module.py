@@ -12,7 +12,10 @@ class Module(object):
 	
 	def rearrangementCost(self, lowerBound=True):
 		if lowerBound:
-			return max(0, int(math.ceil(len(set(self.sides))/2)) - 1)
+			print 'MODULE', max(0, int(math.ceil(len(set(self.sides))* 0.5)) - 1)
+			if max(0, int(math.ceil(len(set(self.sides))* 0.5)) - 1) > 1:
+				print [id(X.segment) for X in self.sides]
+			return max(0, int(math.ceil(len(set(self.sides))* 0.5)) - 1)
 		else:
 			assert False, "Ben's working on the formula"
 			if self.hasNoUnattachedSides():
