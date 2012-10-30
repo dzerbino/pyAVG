@@ -2,6 +2,7 @@
 
 import side
 from thread import Thread
+from traversal import Traversal
 
 class Segment(object):
 	""" DNA history segment """
@@ -82,7 +83,7 @@ class Segment(object):
 	## Threads
 	##########################
 	def thread(self):
-		thread = Thread([(self, True)])
+		thread = Thread([Traversal(self, True)])
 		thread.expandLeft()
 		thread.expandRight()
 		return thread
@@ -93,8 +94,8 @@ class Segment(object):
 			return data
 		else:
 			thread = self.thread()
-			for segment in thread:
-				segmentThreads[segment[0]] = thread
+			for traversal in thread:
+				segmentThreads[traversal.segment] = thread
 			threads.add(thread)
 
 			return threads, segmentThreads
@@ -112,9 +113,9 @@ class Segment(object):
 		lines = [" ".join([str(id(self)), "[ label=", self.sequence, "]"])]
 		if self.parent is not None:
 			lines.append(" ".join([str(id(self.parent)), "->", str(id(self)), "[color=green]"]))
-		if self.left.bond is not None and self < self.left.bond.segment:
+		if self.left.bond is not None and self <= self.left.bond.segment:
 			lines.append(" ".join([str(id(self)), "->", str(id(self.left.bond.segment)), "[color=red, arrowhead=none]"]))
-		if self.right.bond is not None and self < self.right.bond.segment:
+		if self.right.bond is not None and self <= self.right.bond.segment:
 			lines.append(" ".join([str(id(self)), "->", str(id(self.right.bond.segment)), "[color=red, arrowhead=none]"]))
 		return "\n".join(lines)	
 		

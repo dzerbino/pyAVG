@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
+
 import sys
 import random
 import copy
 
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from pyAVG.DNAHistoryGraph.thread import CircularSequenceThread
-from pyAVG.DNAHistoryGraph.thread import Thread
-from pyAVG.DNAHistoryGraph.thread import redirect
+from pyAVG.DNAHistoryGraph.thread import CircularThread
 
 """Produces random evolutionary histories"""
 
@@ -87,7 +87,6 @@ class InitialBranch(HistoryBranch):
 
 	def threads(self):
 		T = CircularSequenceThread(self.genome)
-		T.validate()
 		return sum([X.threads(T) for X in self.children], []) + [T]
 
 #########################################
@@ -111,11 +110,13 @@ class Operation(HistoryBranch):
 
 	def modifyThread(self, thread):
 		# Default, no action
+		'NO CHANGE'
 		return thread
 
 	def threads(self, parentThread):
 		T = self.modifyThread(parentThread.childThread())
-		T.validate()
+		assert all(X.segment.parent in parentThread.segments() for X in T)
+		assert all(X.segment.parent is None or X.segment in X.segment.parent.children for X in T)
 		return sum([X.threads(T) for X in self.children], []) + [T]
 
 class Identity(Operation):
@@ -185,10 +186,7 @@ class Inversion(Operation):
 		return (self._testPosition(self.start) and self._testPosition(self.start + self.length)) or (self._testPosition(self.start - 1) and self._testPosition(self.start + self.length - 1))
 
 	def modifyThread(self, thread):
-		thread.redirect(self.start, True, self.start + self.length, False)
-		thread.redirect(self.start - 1, False, self.start + self.length - 1, True)
-		res = Thread(thread[:self.start] + [(X[0], not X[1]) for X in reversed(thread[self.start:self.start + self.length])] + thread[self.start+self.length:])
-		return res
+		return CircularThread(thread[:self.start] + [X.opposite() for X in reversed(thread[self.start:self.start + self.length])] + thread[self.start+self.length:])
 		
 class Duplication(Operation):
 	"""Duplication branch"""
@@ -230,21 +228,15 @@ class Duplication(Operation):
 
 	def modifyThread(self, T):
 		duplicate = copy.copy(T)
-		for segmentA, segmentB in zip(T, duplicate):
-			segmentA[0].parent.children.add(segmentB[0])
-			segmentB[0].parent = segmentA[0].parent
+		for traversalA, traversalB in zip(T[self.start:], duplicate[self.start:]):
+			traversalA.segment.parent.children.add(traversalB.segment)
+			traversalB.segment.parent = traversalA.segment.parent
 
-		redirect(T[(self.start + self.length - 1) % len(T)], False, duplicate[self.start], False)
-		redirect(duplicate[-1], False, T[0], False)
-
-		for segment in duplicate[:self.start]:
-			if segment[0].parent is not None:
-				segment[0].parent.children.remove(segment[0])
-		for segment in T[self.start + self.length:]:
-			if segment[0].parent is not None:
-				segment[0].parent.children.remove(segment[0])
+		for traversal in T[self.start + self.length:]:
+			if traversal.segment.parent is not None:
+				traversal.segment.parent.children.remove(traversal.segment)
 		
-		return Thread(T[:self.start + self.length] + duplicate[self.start:])
+		return CircularThread(T[:self.start + self.length] + duplicate[self.start:])
 
 class Deletion(Operation):
 	"""Deletion branch"""
@@ -288,11 +280,10 @@ class Deletion(Operation):
 		return self._testPosition(self.start - 1) or self._testPosition(self.start + self.length)
 
 	def modifyThread(self, thread):
-		thread.redirect(self.start - 1, False, self.start + self.length, False)
-		for segment in thread[self.start:self.start + self.length]:
-			if segment[0].parent is not None:
-				segment[0].parent.children.remove(segment[0])
-		return Thread(thread[:self.start] + thread[self.start+self.length:])
+		for traversal in thread[self.start:self.start + self.length]:
+			if traversal.segment.parent is not None:
+				traversal.segment.parent.children.remove(traversal.segment)
+		return CircularThread(thread[:self.start] + thread[self.start+self.length:])
 
 class Mutation(Operation):
 	"""Deletion branch"""
@@ -326,7 +317,7 @@ class Mutation(Operation):
 		return 1
 
 	def modifyThread(self, thread):
-		thread[self.pos][0].sequence = complement(thread[self.pos][0].sequence)
+		thread[self.pos].segment.sequence = complement(thread[self.pos].segment.sequence)
 		return thread
 
 #########################################
@@ -355,12 +346,12 @@ class History(object):
 		return self.root._dot()
 
 	def avg(self):
-		return DNAHistoryGraph(S[0] for T in self.root.threads() for S in T)
+		return DNAHistoryGraph(S.segment for T in self.root.threads() for S in T)
 
 #########################################
 ## Random Evolutionary History
 #########################################
-def _addChildBranch(branch):
+def _addChildBranch(branch, noDupes=False):
 	choice = random.random()
 	start = random.randrange(len(branch.genome))
 
@@ -369,18 +360,18 @@ def _addChildBranch(branch):
 	elif len(branch.genome) > start + 1 and choice < 0.8:
 		length = random.randrange(1, len(branch.genome) - start)
 		Inversion(branch, start, length)
-	elif len(branch.genome) > 1 and choice < 0.85:
+	elif len(branch.genome) > 1 and choice < 0.85 and not noDupes:
 		# Separate length prob for different operations (e.g. long distance duplications followed by deletions make things moot)
 		length = int(random.expovariate(0.1))
-		if length > len(branch.genome) - start:
-			length = len(branch.genome) - start
+		if length > len(branch.genome) - start - 1:
+			length = len(branch.genome) - start - 1
 		if length == 0:
 			length = 1
 		Duplication(branch, start, length)
-	elif len(branch.genome) > 1 and choice < 0.9:
+	elif len(branch.genome) > start + 1 and choice < 0.9:
 		length = int(random.expovariate(0.1))
-		if length > len(branch.genome) - start:
-			length = len(branch.genome) - start
+		if length > len(branch.genome) - start - 1:
+			length = len(branch.genome) - start - 1
 		if length == 0:
 			length = 1
 		Deletion(branch, start, length)
@@ -398,9 +389,11 @@ def _extendHistory_Branch(branch):
 	if len(branch.genome) == 0:
 		return
 	if _birthDeathModel() > 1:
-		# If more than one branch, then one must be identity
+		# If more than one branch, then one must be identity, the other cannot dupe
 		Identity(branch)
-	_addChildBranch(branch)
+		_addChildBranch(branch, noDupes=True)
+	else:
+		_addChildBranch(branch)
 
 def _extendHistory(branch, counter):
 	_extendHistory_Branch(branch)
@@ -420,9 +413,11 @@ def test_main():
 	history = RandomHistory(10, 10)
 	avg = history.avg()
 	assert avg.validate()
-	assert avg.isAVG()
-	assert history.subs() == avg.substitutionCost()
-	assert history.cost() == avg.rearrangementCost()
+	assert avg.isAVG(), avg.dot()
+	assert history.subs() == avg.substitutionCost(), "%s\t%s" % (history.subs(), avg.substitutionCost())
+	assert history.cost() == avg.rearrangementCost(), "\n".join([str(history), avg.dot(), str(history.cost()), str(avg.rearrangementCost())])
+	#assert avg.substitutionCost(lowerBound=False) == avg.substitutionCost(lowerBound=True)
+	#assert avg.rearrangementCost(lowerBound=False) == avg.rearrangementCost(lowerBound=True)
 
 if __name__ == '__main__':
 	test_main()

@@ -27,7 +27,6 @@ def deAVG(avg):
 def test_main():
 	history = RandomHistory(10, 10)
 	avg = history.avg()
-	assert avg.validate()
 	graph = deAVG(avg)
 	assert graph.validate()
 

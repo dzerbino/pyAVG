@@ -1,128 +1,121 @@
 #!/usr/bin/env python
 
 import segment
+import traversal
 import copy
-
-def _invert(segment):
-	return (segment[0], not segment[1])
-
-def _connectPair(segmentA, segmentB):
-	if segmentA[1] and segmentB[1]:
-		segmentA[0].right.createBond(segmentB[0].left)
-	elif segmentA[1] and not segmentB[1]:
-		segmentA[0].right.createBond(segmentB[0].right)
-	elif not segmentA[1] and segmentB[1]:
-		segmentA[0].left.createBond(segmentB[0].left)
-	else:
-		segmentA[0].left.createBond(segmentB[0].right)
-
-def _pairIsConnected(segmentA, segmentB):
-	if segmentA[1] and segmentB[1]:
-		return segmentA[0].right is segmentB[0].left.bond
-	elif segmentA[1] and not segmentB[1]:
-		return segmentA[0].right is segmentB[0].right.bond
-	elif not segmentA[1] and segmentB[1]:
-		return segmentA[0].left is segmentB[0].left.bond
-	else:
-		return segmentA[0].left is segmentB[0].right.bond
-
-def redirect(segmentA, invert, segmentB, invert2):
-	if invert:
-		segmentA = _invert(segmentA)
-	if invert2:
-		segmentB = _invert(segmentB)
-	_connectPair(segmentA, segmentB)
 
 class Thread(object):
 	""" Walk through DNA history graph, i.e. sequence of oriented segments """
+	################################
+	## Basics
+	################################
 	def __init__(self, iter=[]):
-		self.elements = list(iter)
-		assert all(isinstance(X[0], segment.Segment) for X in self)
+		self.traversals = list(iter)
+		self._connect()
+		assert all(isinstance(X, traversal.Traversal) for X in self)
 
 	def __getitem__(self, key):
-		return self.elements[key]
+		return self.traversals[key]
 
 	def __len__(self):
-		return len(self.elements)
-
-	def _connect(self):
-		for segmentA, segmentB in zip(self[:-1], self[1:]):
-			_connectPair(segmentA, segmentB)
+		return len(self.traversals)
 
 	def __copy__(self):
-		thread = Thread((copy.copy(X[0]), X[1]) for X in self)
+		thread = Thread(copy.copy(X) for X in self)
 		thread._connect()
-		if _pairIsConnected(self[-1], self[0]):
-			_connectPair(thread[-1], thread[0])
+		if self[-1].isConnected(self[0]):
+			thread[-1].connect(thread[0])
 		return thread
 
-	def append(self, value, orientation):
-		self.elements.append(value, orientation)
+	def append(self, element):
+		self.traversals.append(element)
 
 	def segments(self):
-		return [X[0] for X in self.elements]
+		return [X.segment for X in self.traversals]
+
+	def _connect(self):
+		for traversalA, traversalB in zip(self[:-1], self[1:]):
+			traversalA.connect(traversalB)
+
+	################################
+	## Output
+	################################
 
 	def dot(self):
-		ranks = " ".join(["{rank = same;"] + [str(id(X[0])) for X in self.elements] + ["}"])
-		data = "\n".join(X[0].dot() for X in self.elements)
+		ranks = " ".join(["{rank = same;"] + [str(id(X.segment)) for X in self.traversals] + ["}"])
+		data = "\n".join(X.dot() for X in self.traversals)
 		return "\n".join([ranks, data])
+
+	################################
+	## Operations
+	################################
 
 	def childThread(self):
 		T = copy.copy(self)
-		for segmentA, segmentB in zip(self, T):
-			segmentA[0].children.add(segmentB[0])
-			segmentB[0].parent = segmentA[0]
+		for traversalA, traversalB in zip(self, T):
+			traversalA.segment.children.add(traversalB.segment)
+			traversalB.segment.parent = traversalA.segment
 		return T
 
 	def expandRight(self):
-		tail, orientation = self[-1]
-		if orientation:
-			bond = tail.right.bond
+		tail = self[-1]
+		if tail.orientation:
+			bond = tail.segment.right.bond
 			if bond is None or bond.segment in self.segments():
 				return
 			else:
-				self.elements.append((bond.segment, bond.left))
+				self.traversals.append(traversal.Traversal(bond.segment, bond.left))
 				return self.expandRight()
 		else:
-			bond = tail.left.bond
+			bond = tail.segment.left.bond
 			if bond is None or bond.segment in self.segments():
 				return
 			else:
-				self.elements.append((bond.segment, bond.left))
+				self.traversals.append(traversal.Traversal(bond.segment, bond.left))
 				return self.expandRight()
 			
 	def expandLeft(self):
-		head, orientation = self[0]
-		if orientation:
-			bond = head.left.bond
+		head = self[0]
+		if head.orientation:
+			bond = head.segment.left.bond
 			if bond is None or bond.segment in self.segments():
 				return
 			else:
-				self.elements = [(bond.segment, not bond.left)] + self.elements
+				self.traversals = [traversal.Traversal(bond.segment, not bond.left)] + self.traversals
 				return self.expandLeft()
 		else:
-			bond = head.right.bond
+			bond = head.segment.right.bond
 			if bond is None or bond.segment in self.segments():
 				return
 			else:
-				self.elements = [(bond.segment, not bond.left)] + self.elements
+				self.traversals = [traversal.Traversal(bond.segment, not bond.left)] + self.traversals
 				return self.expandLeft()
 
-	def redirect(self, pos1, invert, pos2, invert2):
-		redirect(self[pos1 % len(self)], invert, self[pos2 % len(self)], invert2)
-
+	################################
+	## Validation
+	################################
 	def validate(self):
 		if len(self) > 0:
-			copy = self[0][0].thread()
-			assert all(X in self.segments() for X in copy.segments())
-			assert all(X in copy.segments() for X in self.segments())
+			copy = self[0].segment.thread()
+			assert len(self) == len(copy), "%s\t%s" % (len(self), len(copy))
+			selfSegments = self.segments()
+			copySegments = copy.segments()
+			assert all(X[0] == X[1] for X in zip(sorted(selfSegments), sorted(copySegments)))
+
+class CircularThread(Thread):
+	""" Circular thread """
+	def __init__(self, iter):
+		super(CircularThread, self).__init__(iter)
+		if len(self) > 0:
+			self[-1].connect(self[0])
 
 class SequenceThread(Thread):
+	""" Thread created from a string sequence """
 	def __init__(self, sequence):
-		super(SequenceThread, self).__init__((segment.Segment(sequence = X), True) for X in str(sequence))
-		self._connect()
+		super(SequenceThread, self).__init__(traversal.Traversal(segment.Segment(sequence = X), True) for X in str(sequence))
 
-class CircularSequenceThread(SequenceThread):
+class CircularSequenceThread(CircularThread):
+	""" Circular thread created from a string sequence """
 	def __init__(self, sequence):
-		super(CircularSequenceThread, self).__init__(sequence)
-		self[0][0].left.createBond(self[-1][0].right)
+		super(CircularSequenceThread, self).__init__(traversal.Traversal(segment.Segment(sequence = X), True) for X in str(sequence))
+	
