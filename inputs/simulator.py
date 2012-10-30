@@ -236,6 +236,13 @@ class Duplication(Operation):
 
 		redirect(T[(self.start + self.length - 1) % len(T)], False, duplicate[self.start], False)
 		redirect(duplicate[-1], False, T[0], False)
+
+		for segment in duplicate[:self.start]:
+			if segment[0].parent is not None:
+				segment[0].parent.children.remove(segment[0])
+		for segment in T[self.start + self.length:]:
+			if segment[0].parent is not None:
+				segment[0].parent.children.remove(segment[0])
 		
 		return Thread(T[:self.start + self.length] + duplicate[self.start:])
 
@@ -282,6 +289,9 @@ class Deletion(Operation):
 
 	def modifyThread(self, thread):
 		thread.redirect(self.start - 1, False, self.start + self.length, False)
+		for segment in thread[self.start:self.start + self.length]:
+			if segment[0].parent is not None:
+				segment[0].parent.children.remove(segment[0])
 		return Thread(thread[:self.start] + thread[self.start+self.length:])
 
 class Mutation(Operation):

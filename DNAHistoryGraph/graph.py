@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import copy
+
 from segment import Segment
 from pyAVG.utils.partialOrderSet import PartialOrderSet
 
@@ -12,8 +14,26 @@ class DNAHistoryGraph(object):
 	def __init__(self, segments=[]):
 		self.segments = list(segments)
 		self.eventGraph, self.segmentThreads = self.threads()
-		self.validate()
 		self.timeEventGraph()
+
+	def __copy__(self):
+		duplicates = dict(map(lambda X: (X, copy.copy(X)), self.segments))
+		for segment in self.segments:
+			if segment.left.bond is not None:
+				if segment.left.bond.left:
+					duplicates[segment].left.createBond(duplicates[segment.left.bond.segment].left)
+				else:
+					duplicates[segment].left.createBond(duplicates[segment.left.bond.segment].right)
+			if segment.right.bond is not None:
+				if segment.right.bond.left:
+					duplicates[segment].right.createBond(duplicates[segment.right.bond.segment].left)
+				else:
+					duplicates[segment].right.createBond(duplicates[segment.right.bond.segment].right)
+
+			if segment.parent is not None:
+				duplicates[segment].parent = duplicates[segment.parent]
+			duplicates[segment].children = set(duplicates[X] for X in segment.children)
+		return DNAHistoryGraph(duplicates.values())
 
 	##################################
 	## Online acyclicity verification
@@ -125,5 +145,9 @@ class DNAHistoryGraph(object):
 	##################################
 	def validate(self):
 		assert all(X.validate() for X in self.segments)
+		assert all(X.parent in self.segments for X in self.segments if X.parent is not None)
+		assert all(Y in self.segments for X in self.segments for Y in X.children)
+		assert all(X.left.bond.segment in self.segments for X in self.segments if X.left.bond is not None)
+		assert all(X.right.bond.segment in self.segments for X in self.segments if X.right.bond is not None)
 		assert self.eventGraph.validate()
 		return True

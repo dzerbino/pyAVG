@@ -11,8 +11,8 @@ Implementation of the DNA history data structure. Currently, implementation of t
 - Graphviz output
 
 Ongoing
-- Useful moves
+- Sampling of AVG extensions thru Ben`s algos
+- Upper bound on complexity
 
 Later:
 - Output: d3?
-- Sampling of AVG extensions thru Ben's algos
