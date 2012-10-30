@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from segment import Segment
-from partialOrderSet import PartialOrderSet
+from pyAVG.utils.partialOrderSet import PartialOrderSet
 
 class DNAHistoryGraph(object):
 	""" DNA History graph """
@@ -11,10 +11,8 @@ class DNAHistoryGraph(object):
 	##################################
 	def __init__(self, segments=[]):
 		self.segments = list(segments)
-		assert all(isinstance(X, Segment) for X in self.segments)
-		print len(self.segments), 'INIT'
 		self.eventGraph, self.segmentThreads = self.threads()
-		print len(self.eventGraph)
+		self.validate()
 		self.timeEventGraph()
 
 	##################################
@@ -61,10 +59,10 @@ class DNAHistoryGraph(object):
 		sideB = sideA.bond
 		sideA.deleteBond()
 		if sideB is not None:
-			thread = sideA.segment.expandThread(Thread())
+			thread = sideA.segment.thread()
 			if sideB not in thread:
 				oldThread = self.segmentThreads[sideA]
-				thread2 = sideB.segment.expandThread(Thread())
+				thread2 = sideB.segment.thread()
 
 				# Updating self.segmentThreads
 				for segment in thread:

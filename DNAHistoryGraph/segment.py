@@ -94,7 +94,7 @@ class Segment(object):
 		else:
 			thread = self.thread()
 			for segment in thread:
-				segmentThreads[segment] = thread
+				segmentThreads[segment[0]] = thread
 			threads.add(thread)
 
 			return threads, segmentThreads
