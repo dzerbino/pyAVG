@@ -11,7 +11,7 @@ from pyAVG.DNAHistoryGraph.thread import redirect
 
 """Produces random evolutionary histories"""
 
-BRANCHPROB = 0
+BRANCHPROB = 0.1
 """ Probability that a branch point occurs at a given node """
 
 class HistoryBranch(object):
@@ -387,11 +387,13 @@ def _birthDeathModel():
 def _extendHistory_Branch(branch):
 	if len(branch.genome) == 0:
 		return
-	for i in range(_birthDeathModel()):
-		_addChildBranch(branch)
+	if _birthDeathModel() > 1:
+		# If more than one branch, then one must be identity
+		Identity(branch)
+	_addChildBranch(branch)
 
 def _extendHistory(branch, counter):
-	newBranches = _extendHistory_Branch(branch)
+	_extendHistory_Branch(branch)
 	if counter > 1:
 		map(lambda X: _extendHistory(X, counter - 1), branch.children)
 

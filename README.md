@@ -7,11 +7,12 @@ Implementation of the DNA history data structure. Currently, implementation of t
 - Structure
 - Ambiguity evaluation
 - Complexity evaluation
-- Random generation
+- Random generation (->unit testing)
+- Graphviz output
 
 Ongoing
-- Output: Graphviz, d3?
 - Useful moves
 
 Later:
+- Output: d3?
 - Sampling of AVG extensions thru Ben's algos
