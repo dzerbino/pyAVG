@@ -7,14 +7,15 @@ class Module(object):
 		self.sides = set(iter)
 		self.nonTrivialLiftedEdges = list(iter2)
 
-	def cycleDiscount(self):
+	def _cycleDiscount(self):
 		if True:
 			return 1
 		else:
 			return 0
 	
 	def rearrangementCost(self, lowerBound=True):
+		""" Returns lower bound (default) or upper bound to the rearrangement cost of a module """
 		if lowerBound:
 			return max(0, int(math.ceil(len(set(self.sides))* 0.5)) - 1)
 		else:
-			return len(self.nonTrivialLiftedEdges) - self.cycleDiscount()
+			return len(self.nonTrivialLiftedEdges) - self._cycleDiscount()

@@ -3,7 +3,7 @@
 import segment
 import copy
 
-def complement(sequence):
+def _complement(sequence):
 	if sequence is 'A':
 		return 'T'
 	else:
@@ -81,6 +81,7 @@ class Traversal(object):
 		return self.end().bond is other.start()
 
 	def createBranch(self, other):
+		""" Create branch from segment to segment of other traversal """
 		self.segment.children.add(other.segment)
 		other.segment.parent = self.segment
 
@@ -89,4 +90,4 @@ class Traversal(object):
 		if self.orientation:
 			return self.segment.sequence
 		else:
-			return complement(self.segment.sequence)
+			return _complement(self.segment.sequence)

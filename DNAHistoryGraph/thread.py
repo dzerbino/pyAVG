@@ -5,7 +5,7 @@ import traversal
 import copy
 
 class Thread(object):
-	""" Walk through DNA history graph, i.e. sequence of oriented segments """
+	""" Walk through DNA history graph, ie sequence of segment traversals """
 	################################
 	## Basics
 	################################
@@ -78,6 +78,7 @@ class Thread(object):
 				self._expandLeft()
 
 	def _expand(self):
+		""" Expand a thread right then left, following bonds as far as possible, stopping when a cycle is created """
 		self._expandRight()
 		self._expandLeft()
 

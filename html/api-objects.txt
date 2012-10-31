@@ -11,8 +11,8 @@ pyAVG.DNAHistoryGraph.side.__package__	pyAVG.DNAHistoryGraph.side-module.html#__
 pyAVG.DNAHistoryGraph.thread	pyAVG.DNAHistoryGraph.thread-module.html
 pyAVG.DNAHistoryGraph.thread.__package__	pyAVG.DNAHistoryGraph.thread-module.html#__package__
 pyAVG.DNAHistoryGraph.traversal	pyAVG.DNAHistoryGraph.traversal-module.html
-pyAVG.DNAHistoryGraph.traversal.complement	pyAVG.DNAHistoryGraph.traversal-module.html#complement
 pyAVG.DNAHistoryGraph.traversal.__package__	pyAVG.DNAHistoryGraph.traversal-module.html#__package__
+pyAVG.DNAHistoryGraph.traversal._complement	pyAVG.DNAHistoryGraph.traversal-module.html#_complement
 pyAVG.DNAHistoryGraph.graph.DNAHistoryGraph	pyAVG.DNAHistoryGraph.graph.DNAHistoryGraph-class.html
 pyAVG.DNAHistoryGraph.graph.DNAHistoryGraph.timeEventGraph	pyAVG.DNAHistoryGraph.graph.DNAHistoryGraph-class.html#timeEventGraph
 pyAVG.DNAHistoryGraph.graph.DNAHistoryGraph.deleteBond	pyAVG.DNAHistoryGraph.graph.DNAHistoryGraph-class.html#deleteBond
@@ -32,7 +32,7 @@ pyAVG.DNAHistoryGraph.graph.DNAHistoryGraph.__copy__	pyAVG.DNAHistoryGraph.graph
 pyAVG.DNAHistoryGraph.graph.DNAHistoryGraph.dot	pyAVG.DNAHistoryGraph.graph.DNAHistoryGraph-class.html#dot
 pyAVG.DNAHistoryGraph.module.Module	pyAVG.DNAHistoryGraph.module.Module-class.html
 pyAVG.DNAHistoryGraph.module.Module.rearrangementCost	pyAVG.DNAHistoryGraph.module.Module-class.html#rearrangementCost
-pyAVG.DNAHistoryGraph.module.Module.cycleDiscount	pyAVG.DNAHistoryGraph.module.Module-class.html#cycleDiscount
+pyAVG.DNAHistoryGraph.module.Module._cycleDiscount	pyAVG.DNAHistoryGraph.module.Module-class.html#_cycleDiscount
 pyAVG.DNAHistoryGraph.module.Module.__init__	pyAVG.DNAHistoryGraph.module.Module-class.html#__init__
 pyAVG.DNAHistoryGraph.segment.Segment	pyAVG.DNAHistoryGraph.segment.Segment-class.html
 pyAVG.DNAHistoryGraph.segment.Segment._liftedLabels2	pyAVG.DNAHistoryGraph.segment.Segment-class.html#_liftedLabels2
