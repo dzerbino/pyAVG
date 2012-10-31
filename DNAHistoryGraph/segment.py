@@ -29,6 +29,15 @@ class Segment(object):
 	## Lifted labels
 	##########################
 
+	def disconnect(self):
+		"""Destroy pointers to this segment """
+		self.left.deleteBond()
+		self.right.deleteBond()
+		for child in self.children:
+			child.parent = self.parent
+			self.parent.children.add(child)
+		self.parent.children.remove(self)
+
 	def _ancestor2(self):
 		if self.sequence != None or self.parent is None:
 			return self
@@ -83,10 +92,7 @@ class Segment(object):
 	## Threads
 	##########################
 	def thread(self):
-		thread = Thread([Traversal(self, True)])
-		thread.expandLeft()
-		thread.expandRight()
-		return thread
+		return Thread([Traversal(self, True)])
 
 	def threads(self, data):
 		threads, segmentThreads = data

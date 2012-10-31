@@ -11,12 +11,7 @@ def deAVG(avg):
 	# Remove all non-root or leaf segments
 	for segment in list(graph.segments):
 		if segment.parent is not None and len(segment.children) > 0:
-			segment.left.deleteBond()
-			segment.right.deleteBond()
-			for child in segment.children:
-				child.parent = segment.parent
-				segment.parent.children.add(child)
-			segment.parent.children.remove(segment)
+			segment.disconnect()
 			graph.segments.remove(segment)
 
 	# Recompute the event graph from scratch
@@ -29,6 +24,8 @@ def test_main():
 	avg = history.avg()
 	graph = deAVG(avg)
 	assert graph.validate()
+	#assert graph.substitutionCost(lowerBound=False) >= graph.substitutionCost(lowerBound=True)
+	#assert graph.rearrangementCost(lowerBound=False) >= graph.rearrangementCost(lowerBound=True)
 
 if __name__ == "__main__":
 	test_main()

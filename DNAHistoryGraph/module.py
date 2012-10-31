@@ -7,15 +7,14 @@ class Module(object):
 		self.sides = set(iter)
 		self.nonTrivialLiftedEdges = list(iter2)
 
-	def hasNoUnattachedSides(self):
-		return all(X.bond is not None for X in self.sides)
+	def cycleDiscount(self):
+		if True:
+			return 1
+		else:
+			return 0
 	
 	def rearrangementCost(self, lowerBound=True):
 		if lowerBound:
 			return max(0, int(math.ceil(len(set(self.sides))* 0.5)) - 1)
 		else:
-			assert False, "Ben's working on the formula"
-			if self.hasNoUnattachedSides():
-				return len(self.nonTrivialLiftedEdges) - 1
-			else:
-				return len(self.nonTrivialLiftedEdges)
+			return len(self.nonTrivialLiftedEdges) - self.cycleDiscount()

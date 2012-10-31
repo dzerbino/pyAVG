@@ -10,9 +10,10 @@ class Thread(object):
 	## Basics
 	################################
 	def __init__(self, iter=[]):
+		""" Creates a thread from a sequence of traversals, connects them up as described, then expands if possible """
 		self.traversals = list(iter)
 		self._connect()
-		assert all(isinstance(X, traversal.Traversal) for X in self)
+		self._expand()
 
 	def __getitem__(self, key):
 		return self.traversals[key]
@@ -50,46 +51,39 @@ class Thread(object):
 	## Operations
 	################################
 
+	def isCycle(self):
+		return self[-1].isConnected(self[0])
+
 	def childThread(self):
+		""" Produces thread of new children nodes of the thread nodes """
 		T = copy.copy(self)
 		for traversalA, traversalB in zip(self, T):
-			traversalA.segment.children.add(traversalB.segment)
-			traversalB.segment.parent = traversalA.segment
+			traversalA.createBranch(traversalB)
 		return T
 
-	def expandRight(self):
-		tail = self[-1]
-		if tail.orientation:
-			bond = tail.segment.right.bond
-			if bond is None or bond.segment in self.segments():
-				return
-			else:
-				self.traversals.append(traversal.Traversal(bond.segment, bond.left))
-				return self.expandRight()
-		else:
-			bond = tail.segment.left.bond
-			if bond is None or bond.segment in self.segments():
-				return
-			else:
-				self.traversals.append(traversal.Traversal(bond.segment, bond.left))
-				return self.expandRight()
+	def _expandRight(self):
+		""" Expand a thread to its right, following as far as possible, stopping when a cycle is created """
+		if not self.isCycle():
+			next = self[-1].next()
+			if next is not None:
+				self.traversals.append(next)
+				self._expandRight()
 			
-	def expandLeft(self):
-		head = self[0]
-		if head.orientation:
-			bond = head.segment.left.bond
-			if bond is None or bond.segment in self.segments():
-				return
-			else:
-				self.traversals = [traversal.Traversal(bond.segment, not bond.left)] + self.traversals
-				return self.expandLeft()
-		else:
-			bond = head.segment.right.bond
-			if bond is None or bond.segment in self.segments():
-				return
-			else:
-				self.traversals = [traversal.Traversal(bond.segment, not bond.left)] + self.traversals
-				return self.expandLeft()
+	def _expandLeft(self):
+		""" Expand a thread to its left, following bonds as far as possible, stopping when a cycle is created """
+		if not self.isCycle():
+			previous = self[0].previous()
+			if previous is not None:
+				self.traversals = [previous] + self.traversals
+				self._expandLeft()
+
+	def _expand(self):
+		self._expandRight()
+		self._expandLeft()
+
+	def sequence(self):
+		""" Returns sequence assigned to thread """
+		return "".join(lambda X: X.sequence() for X in self)
 
 	################################
 	## Validation
@@ -105,9 +99,10 @@ class Thread(object):
 class CircularThread(Thread):
 	""" Circular thread """
 	def __init__(self, iter):
-		super(CircularThread, self).__init__(iter)
-		if len(self) > 0:
-			self[-1].connect(self[0])
+		elems = list(iter)
+		if len(elems) > 0:
+			elems[-1].connect(elems[0])
+		super(CircularThread, self).__init__(elems)
 
 class SequenceThread(Thread):
 	""" Thread created from a string sequence """
