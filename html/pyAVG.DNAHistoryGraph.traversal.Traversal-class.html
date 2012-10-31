@@ -60,16 +60,29 @@
 <center>  <map id="uml_class_diagram_for_pyavg_dn_9" name="uml_class_diagram_for_pyavg_dn_9">
 <area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#__init__" title="x.__init__(...) initializes x; see x.__class__.__doc__ for signature" alt="" coords="17,39,201,57"/>
 <area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#__copy__" title="pyAVG.DNAHistoryGraph.traversal.Traversal.__copy__" alt="" coords="17,57,201,76"/>
-<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#dot" title="pyAVG.DNAHistoryGraph.traversal.Traversal.dot" alt="" coords="17,76,201,95"/>
-<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#opposite" title="pyAVG.DNAHistoryGraph.traversal.Traversal.opposite" alt="" coords="17,95,201,113"/>
-<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#connect" title="pyAVG.DNAHistoryGraph.traversal.Traversal.connect" alt="" coords="17,113,201,132"/>
-<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#isConnected" title="pyAVG.DNAHistoryGraph.traversal.Traversal.isConnected" alt="" coords="17,132,201,151"/>
-<area shape="rect" id="node1" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html" title="pyAVG.DNAHistoryGraph.traversal.Traversal" alt="" coords="5,6,213,157"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#__eq__" title="pyAVG.DNAHistoryGraph.traversal.Traversal.__eq__" alt="" coords="17,76,201,95"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#dot" title="pyAVG.DNAHistoryGraph.traversal.Traversal.dot" alt="" coords="17,95,201,113"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#opposite" title="The traveral of the same segment but in the opposite direction" alt="" coords="17,113,201,132"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#start" title="Start side of the traversed segment" alt="" coords="17,132,201,151"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#previous" title="Returns traversal of the segment prior to the current segment traversal" alt="" coords="17,151,201,169"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#end" title="End side of the traversed segment" alt="" coords="17,169,201,188"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#next" title="Returns traversal of the segment following the current segment traversal" alt="" coords="17,188,201,207"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#connect" title="Connect the end of traversal to the beginning of another traversal." alt="" coords="17,207,201,225"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#isConnected" title="Check whether the end of a traversal is connected to the beginning of &#160;another traversal." alt="" coords="17,225,201,244"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#createBranch" title="pyAVG.DNAHistoryGraph.traversal.Traversal.createBranch" alt="" coords="17,244,201,263"/>
+<area shape="rect" id="node16" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html#sequence" title="Returns sequence of segment, reverse complemented if the orientation is &#160;negative" alt="" coords="17,263,201,281"/>
+<area shape="rect" id="node1" href="pyAVG.DNAHistoryGraph.traversal.Traversal-class.html" title="A segment as seen from a given traversal orientation." alt="" coords="5,6,213,287"/>
 </map>
   <img src="uml_class_diagram_for_pyavg_dn_9.gif" alt='' usemap="#uml_class_diagram_for_pyavg_dn_9" ismap="ismap" class="graph-without-title" />
 </center>
 </center>
 <hr />
+<p>A segment as seen from a given traversal orientation.</p>
+  <p>If the orientation is direct (i.e. True), the traversal starts on the 
+  left side of the segment and ends on the right.</p>
+  <p>If the orientation is opposite (i.e. False), the traversal starts on 
+  the right side of the segment and ends on the left.</p>
+
 <!-- ==================== INSTANCE METHODS ==================== -->
 <a name="section-InstanceMethods"></a>
 <table class="summary" border="1" cellpadding="3"
@@ -119,6 +132,23 @@
     </td><td class="summary">
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
+          <td><span class="summary-sig"><a name="__eq__"></a><span class="summary-sig-name">__eq__</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">other</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.__eq__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
           <td><span class="summary-sig"><a name="dot"></a><span class="summary-sig-name">dot</span>(<span class="summary-sig-arg">self</span>)</span></td>
           <td align="right" valign="top">
             <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.dot">source&nbsp;code</a></span>
@@ -135,7 +165,8 @@
     </td><td class="summary">
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
-          <td><span class="summary-sig"><a name="opposite"></a><span class="summary-sig-name">opposite</span>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td><span class="summary-sig"><a name="opposite"></a><span class="summary-sig-name">opposite</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      The traveral of the same segment but in the opposite direction</td>
           <td align="right" valign="top">
             <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.opposite">source&nbsp;code</a></span>
             
@@ -151,8 +182,79 @@
     </td><td class="summary">
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
+          <td><span class="summary-sig"><a name="start"></a><span class="summary-sig-name">start</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Start side of the traversed segment</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.start">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="previous"></a><span class="summary-sig-name">previous</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Returns traversal of the segment prior to the current segment 
+      traversal</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.previous">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="end"></a><span class="summary-sig-name">end</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      End side of the traversed segment</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.end">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="next"></a><span class="summary-sig-name">next</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Returns traversal of the segment following the current segment 
+      traversal</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.next">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
           <td><span class="summary-sig"><a name="connect"></a><span class="summary-sig-name">connect</span>(<span class="summary-sig-arg">self</span>,
-        <span class="summary-sig-arg">other</span>)</span></td>
+        <span class="summary-sig-arg">other</span>)</span><br />
+      Connect the end of traversal to the beginning of another traversal.</td>
           <td align="right" valign="top">
             <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.connect">source&nbsp;code</a></span>
             
@@ -169,9 +271,46 @@
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td><span class="summary-sig"><a name="isConnected"></a><span class="summary-sig-name">isConnected</span>(<span class="summary-sig-arg">self</span>,
-        <span class="summary-sig-arg">other</span>)</span></td>
+        <span class="summary-sig-arg">other</span>)</span><br />
+      Check whether the end of a traversal is connected to the beginning of
+      another traversal.</td>
           <td align="right" valign="top">
             <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.isConnected">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="createBranch"></a><span class="summary-sig-name">createBranch</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">other</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.createBranch">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="sequence"></a><span class="summary-sig-name">sequence</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Returns sequence of segment, reverse complemented if the orientation 
+      is negative</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="pyAVG.DNAHistoryGraph.traversal-pysrc.html#Traversal.sequence">source&nbsp;code</a></span>
             
           </td>
         </tr>
@@ -277,7 +416,7 @@
 <table border="0" cellpadding="0" cellspacing="0" width="100%%">
   <tr>
     <td align="left" class="footer">
-    Generated by Epydoc 3.0.1 on Tue Oct 30 14:16:41 2012
+    Generated by Epydoc 3.0.1 on Wed Oct 31 13:37:33 2012
     </td>
     <td align="right" class="footer">
       <a target="mainFrame" href="http://epydoc.sourceforge.net"
