@@ -84,7 +84,7 @@ class Thread(object):
 
 	def sequence(self):
 		""" Returns sequence assigned to thread """
-		return "".join(lambda X: X.sequence() for X in self)
+		return "".join(lambda X: str(X) for X in self)
 
 	################################
 	## Validation

@@ -8,6 +8,7 @@ import copy
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from pyAVG.DNAHistoryGraph.thread import CircularSequenceThread
 from pyAVG.DNAHistoryGraph.thread import CircularThread
+from pyAVG.DNAHistoryGraph.label import Label
 
 """Produces random evolutionary histories"""
 
@@ -317,7 +318,7 @@ class Mutation(Operation):
 		return 1
 
 	def modifyThread(self, thread):
-		thread[self.pos].segment.sequence = complement(thread[self.pos].segment.sequence)
+		thread[self.pos].segment.label = Label(thread[self.pos].segment.label.complement())
 		return thread
 
 #########################################

@@ -3,6 +3,7 @@
 import side
 from thread import Thread
 from traversal import Traversal
+from label import Label
 
 class Segment(object):
 	""" DNA history segment """
@@ -11,8 +12,10 @@ class Segment(object):
 	## Basics
 	##########################
 	def __init__(self, sequence=None, parent = None, children = []):
-		self.sequence = str(sequence)[:1]
-		assert parent is None or isinstance(parent, Segment)
+		if sequence is not None:
+			self.label = Label(sequence)
+		else:
+			self.label = None
 		self.parent = parent
 		self.children = set(children)
 		self.right = None
@@ -23,11 +26,24 @@ class Segment(object):
 		return cmp(id(self), id(other))
 
 	def __copy__(self):
-		return Segment(self.sequence)
+		return Segment(self.label)
+
+	def __str__(self):
+		return str(self.label)
 
 	def sides(self):
 		""" Returns list of segment sides """
 		return [self.left, self.right]
+
+	def createBranch(self, other):
+		""" Creates branch between segments """
+		self.children.add(other)
+		other.parent = self
+
+	def deleteBranch(self, other):
+		""" Removes branch between segments """
+		self.children.remove(other)
+		other.parent = None
 
 	##########################
 	## Lifted labels
@@ -44,7 +60,7 @@ class Segment(object):
 			self.parent.children.remove(self)
 
 	def _ancestor2(self):
-		if self.sequence != None or self.parent is None:
+		if self.label is not None or self.parent is None:
 			return self
 		else:
 			return self.parent._ancestor2()
@@ -56,14 +72,14 @@ class Segment(object):
 			return self.parent._ancestor2()
 
 	def _liftedLabels2(self):
-		if self.sequence is None:
+		if self.label is None:
 			liftingLabels = sum([X._liftedLabels2() for X in self.children], [])
 			if len(liftingLabels) < 2:
 				return liftingLabels
 			else:
 				return [(X[0], True) for X in liftingLabels]
 		else:
-			return [(self.sequence, self.sequence is not self.ancestor().sequence)]
+			return [(str(self), self.label != self.ancestor().label)]
 	
 	def liftedLabels(self):
 		""" Returns tuple of lifted labels (X, Y), where X is lifted label, and Y determines whether X is non-trivial """
@@ -115,12 +131,12 @@ class Segment(object):
 	## Output
 	##########################
 	def dot(self):
-		lines = [" ".join([str(id(self)), "[ label=", self.sequence, "]"])]
+		lines = ["%i [label=%s]" % (id(self), str(self.label))]
 		if self.parent is not None:
-			if self.parent.sequence is self.sequence:
-				lines.append(" ".join([str(id(self.parent)), "->", str(id(self)), "[color=green]"]))
+			if self.parent.label != self.label:
+				lines.append("%i -> %i [color=green]" % (id(self.parent), id(self)))
 			else:
-				lines.append(" ".join([str(id(self.parent)), "->", str(id(self)), "[color=blue]"]))
+				lines.append("%i -> %i [color=blue]" % (id(self.parent), id(self)))
 		lines.append(self.left.dot())
 		lines.append(self.right.dot())
 		return "\n".join(lines)	

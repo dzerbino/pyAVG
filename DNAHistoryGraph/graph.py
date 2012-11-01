@@ -35,6 +35,24 @@ class DNAHistoryGraph(object):
 			duplicates[segment].children = set(duplicates[X] for X in segment.children)
 		return DNAHistoryGraph(duplicates.values())
 
+	def newSegment(self):
+		segment = Segment()
+		self.segments.add(segment)
+		thread = Thread([segment])
+		self.eventGraph.add(thread)
+		self.segmentThreads[segment] = thread
+		return segment
+
+	def sideSegment(self, side):
+		return self.segmentThreads[side.segment]
+
+	def interpolateSegment(self, parent, child):
+		segment = self.newSegment()
+		self.deleteBranch(parent, child)
+		self.createBranch(parent, segment)
+		self.createBranch(segment, parent)
+		return segment
+
 	##################################
 	## Online acyclicity verification
 	##################################
@@ -44,12 +62,22 @@ class DNAHistoryGraph(object):
 
 	def timeEventGraph(self):
 		""" Adds timing constraints to unordered set of threads """	
-		assert all(X.parent in self.segments for X in self.segments if X.parent is not None)
-		assert all(X.parent in self.segmentThreads for X in self.segments if X.parent is not None)
-		assert all(X in self.segmentThreads for X in self.segments)
 		for segment in self.segments:
 			if segment.parent is not None:
 				self.eventGraph.addConstraint(self.segmentThreads[segment.parent], self.segmentThreads[segment])
+
+	def createBranch(self, segmentA, segmentB):
+		""" Creates branch between two segments, and throws RuntimeError if cycle is created """
+		segmentA.createBranch(segmentB)
+		self.eventGraph.addConstraint(self.segmentThreads[segmentA], self.segmentThreads[segmentB])		
+
+	def deleteBranch(self, segmentA, segmentB):
+		""" Deletes branch between two segments, and throws RuntimeError if cycle is created """
+		segmentA.deleteBranch(segmentB)
+		threadA = self.threadSegments[segmentA]
+		threadB = self.threadSegments[segmentB]
+		if not any(self.segmentThreads[X.parent.segment] is threadA for X in threadB):
+			self.eventGraph.removeConstraint(self.segmentThreads[segmentA], self.segmentThreads[segmentB])		
 
 	def createBond(self, sideA, sideB):
 		""" Creates bond between two sides and throws RuntimeError if cycle created """
@@ -103,6 +131,8 @@ class DNAHistoryGraph(object):
 					for child in segment.children:
 						self.eventGraph.addConstraint(thread2, self.segmentThreads[child])
 
+	def areSiblings(self, threadA, threadB):
+		return self.eventGraph.testConstraint(threadA, threadB) and self.eventGraph.testConstraint(threadB, threadA) 
 
 	##################################
 	## Ambiguity

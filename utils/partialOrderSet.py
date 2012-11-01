@@ -118,6 +118,12 @@ class PartialOrderSet(set):
 		for index in range(len(Lnodes)):
 			self.depth[Lnodes[index]] = Ldepths[index]
 
+	def testConstraint(self, ancestral, derived):
+		"""
+		Tests whether adding an ordering constraint between two elements in the set could be done without creating a cycle
+		"""
+		return self.depth[derived] >= self.depth[ancestral] or self._dfsForward(derived, self.depth[ancestral]) is not None
+
 	def addConstraint(self, ancestral, derived):
 		"""
 		Adds an ordering constraint between two elements in the set, updating the ordering if necessary. 

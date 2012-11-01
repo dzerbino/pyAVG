@@ -3,12 +3,6 @@
 import segment
 import copy
 
-def _complement(sequence):
-	if sequence is 'A':
-		return 'T'
-	else:
-		return 'A'
-
 class Traversal(object):
 	""" 
 	A segment as seen from a given traversal orientation. 
@@ -87,7 +81,9 @@ class Traversal(object):
 
 	def sequence(self):
 		""" Returns sequence of segment, reverse complemented if the orientation is negative """
-		if self.orientation:
-			return self.segment.sequence
-		else:
-			return _complement(self.segment.sequence)
+		if self.segment.label is None:
+			return 'N'
+		elif self.orientation:
+			return str(self.segment.label)
+		elif self.segment.label is None:
+			return self.segment.label.complement()

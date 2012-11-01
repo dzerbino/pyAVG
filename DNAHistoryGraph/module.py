@@ -36,6 +36,11 @@ class Module(object):
 	def dot(self):
 		return "\n".join(["node [color=blue]"] + map(lambda X: str(id(X.segment)), self.sides) + self._liftedEdgesDot() + ["node [color=black]"])
 
+	def isSimple(self):
+		# Test whether there are no duplicates in list of lifted edge nodes
+		sides = sum([list(X) for X in self.nonTrivialLiftedEdges], [])
+		return len(sides) == len(set(sides))
+
 	def validate(self, graph):
 		assert all(X.bond is not None or X.parent() is None for X in self.sides)
 		assert self.rearrangementCost(lowerBound=True) <= self.rearrangementCost(lowerBound=False), "\n".join([graph.dot(), self.dot(), str(self.rearrangementCost(lowerBound=True)), str(self.rearrangementCost(lowerBound=False))])
