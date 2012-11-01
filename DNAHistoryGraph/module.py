@@ -25,3 +25,18 @@ class Module(object):
 			return max(0, int(math.ceil(len(set(self.sides))* 0.5)) - 1)
 		else:
 			return len(self.nonTrivialLiftedEdges) - self._cycleDiscount()
+
+	def _liftedEdgeDot(self, liftedEdge):
+		sides = list(liftedEdge)
+		return "%s -> %s [style=dashed]" % (id(sides[0].segment), id(sides[1].segment))
+
+	def _liftedEdgesDot(self):
+		return map(self._liftedEdgeDot, self.nonTrivialLiftedEdges)
+
+	def dot(self):
+		return "\n".join(["node [color=blue]"] + map(lambda X: str(id(X.segment)), self.sides) + self._liftedEdgesDot() + ["node [color=black]"])
+
+	def validate(self, graph):
+		assert all(X.bond is not None or X.parent() is None for X in self.sides)
+		assert self.rearrangementCost(lowerBound=True) <= self.rearrangementCost(lowerBound=False), "\n".join([graph.dot(), self.dot(), str(self.rearrangementCost(lowerBound=True)), str(self.rearrangementCost(lowerBound=False))])
+		return True

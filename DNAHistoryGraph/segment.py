@@ -35,8 +35,9 @@ class Segment(object):
 		self.right.deleteBond()
 		for child in self.children:
 			child.parent = self.parent
-			self.parent.children.add(child)
-		self.parent.children.remove(self)
+		if self.parent is not None:
+			self.parent.children |= self.children
+			self.parent.children.remove(self)
 
 	def _ancestor2(self):
 		if self.sequence != None or self.parent is None:
@@ -118,11 +119,12 @@ class Segment(object):
 	def dot(self):
 		lines = [" ".join([str(id(self)), "[ label=", self.sequence, "]"])]
 		if self.parent is not None:
-			lines.append(" ".join([str(id(self.parent)), "->", str(id(self)), "[color=green]"]))
-		if self.left.bond is not None and self <= self.left.bond.segment:
-			lines.append(" ".join([str(id(self)), "->", str(id(self.left.bond.segment)), "[color=red, arrowhead=none]"]))
-		if self.right.bond is not None and self <= self.right.bond.segment:
-			lines.append(" ".join([str(id(self)), "->", str(id(self.right.bond.segment)), "[color=red, arrowhead=none]"]))
+			if self.parent.sequence is self.sequence:
+				lines.append(" ".join([str(id(self.parent)), "->", str(id(self)), "[color=green]"]))
+			else:
+				lines.append(" ".join([str(id(self.parent)), "->", str(id(self)), "[color=blue]"]))
+		lines.append(self.left.dot())
+		lines.append(self.right.dot())
 		return "\n".join(lines)	
 		
 	
@@ -134,4 +136,5 @@ class Segment(object):
 		assert all(self is child.parent for child in self.children)
 		assert self.left.validate()
 		assert self.right.validate()
+		assert self.substitutionCost() <= self.substitutionCost(False)
 		return True

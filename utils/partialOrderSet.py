@@ -119,7 +119,10 @@ class PartialOrderSet(set):
 			self.depth[Lnodes[index]] = Ldepths[index]
 
 	def addConstraint(self, ancestral, derived):
-		"""Adds an ordering constraint between two elements in the set, updating the ordering if necessary. Refuses the addition and returns False if a contradiction would be created by the addition."""
+		"""
+		Adds an ordering constraint between two elements in the set, updating the ordering if necessary. 
+		Refuses the addition and raises RuntimeError if a contradiction would be created by the addition.
+		"""
 		if ancestral not in self:
 			self.addElement(ancestral)
 		if derived not in self:
@@ -133,6 +136,7 @@ class PartialOrderSet(set):
 			if RForward is None:
 				# Oops, just created a self loop
 				raise RuntimeError
+				assert False
 			else:
 				RBackward = self._dfsBackward(ancestral, lower)
 				self._reassign(RForward, RBackward)

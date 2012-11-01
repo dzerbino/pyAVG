@@ -103,10 +103,23 @@ class Side(object):
 		modules, visited = data
 		if self in visited:
 			return data
+		if self.bond is None and self.segment.parent is not None:
+			# If just a linear side which does not belong to the lifted graph
+			return data
 		else:
 			M = module.Module()
 			self._expandModule(M)
 			return modules + [M], visited | M.sides
+
+	##############################
+	## Output
+	##############################
+
+	def dot(self):
+		if self.bond is not None and self.segment <= self.bond.segment:
+			return "%i -> %i [color=red, arrowhead=none]" % (id(self.segment), id(self.bond.segment)) 
+		else:
+			return ""
 
 	##############################
 	## Validation

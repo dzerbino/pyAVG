@@ -150,4 +150,5 @@ class DNAHistoryGraph(object):
 		assert all(X.left.bond.segment in self.segments for X in self.segments if X.left.bond is not None)
 		assert all(X.right.bond.segment in self.segments for X in self.segments if X.right.bond is not None)
 		assert self.eventGraph.validate()
+		assert all(X.validate(self) for X in self.modules())
 		return True
