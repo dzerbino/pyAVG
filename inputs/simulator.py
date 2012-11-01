@@ -416,8 +416,8 @@ def test_main():
 	assert avg.isAVG(), avg.dot()
 	assert history.subs() == avg.substitutionCost(), "%s\t%s" % (history.subs(), avg.substitutionCost())
 	assert history.cost() == avg.rearrangementCost(), "\n".join([str(history), avg.dot(), str(history.cost()), str(avg.rearrangementCost())])
-	#assert avg.substitutionCost(lowerBound=False) == avg.substitutionCost(lowerBound=True)
-	#assert avg.rearrangementCost(lowerBound=False) == avg.rearrangementCost(lowerBound=True)
+	assert avg.substitutionCost(lowerBound=False) == avg.substitutionCost(lowerBound=True)
+	assert avg.rearrangementCost(lowerBound=False) == avg.rearrangementCost(lowerBound=True)
 
 if __name__ == '__main__':
 	test_main()

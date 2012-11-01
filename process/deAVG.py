@@ -24,8 +24,8 @@ def test_main():
 	avg = history.avg()
 	graph = deAVG(avg)
 	assert graph.validate()
-	#assert graph.substitutionCost(lowerBound=False) >= graph.substitutionCost(lowerBound=True)
-	#assert graph.rearrangementCost(lowerBound=False) >= graph.rearrangementCost(lowerBound=True)
+	assert graph.substitutionCost(lowerBound=False) >= graph.substitutionCost(lowerBound=True)
+	assert graph.rearrangementCost(lowerBound=False) >= graph.rearrangementCost(lowerBound=True)
 
 if __name__ == "__main__":
 	test_main()

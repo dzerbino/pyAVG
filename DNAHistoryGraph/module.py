@@ -7,8 +7,14 @@ class Module(object):
 		self.sides = set(iter)
 		self.nonTrivialLiftedEdges = list(iter2)
 
+	def _hasNoUnattachedSides(self):
+		return not any(X.bond is None for X in self.sides)
+
+	def _hasALiftedEdgeForEveryTwoSides(self):
+		return len(self.sides) == 2 * len(self.nonTrivialLiftedEdges)
+
 	def _cycleDiscount(self):
-		if True:
+		if self._hasNoUnattachedSides() and self._hasALiftedEdgeForEveryTwoSides():
 			return 1
 		else:
 			return 0
