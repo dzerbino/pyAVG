@@ -12,6 +12,3 @@ Implementation of the DNA history data structure. Currently, implementation of t
 
 Ongoing
 - Sampling of AVG extensions thru Ben`s algos
-
-Later:
-- Output: d3?

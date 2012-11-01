@@ -410,7 +410,7 @@ class RandomHistory(History):
 ## Unit test
 #########################################
 def test_main():
-	history = RandomHistory(10, 10)
+	history = RandomHistory(10,10)
 	avg = history.avg()
 	assert avg.validate()
 	assert avg.isAVG(), avg.dot()

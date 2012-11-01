@@ -21,10 +21,7 @@ def deAVG(avg, removalDensity=0.5):
 	return graph
 
 def test_main():
-	history = RandomHistory(5, 5)
-	avg = history.avg()
-	graph = deAVG(avg)
-	assert graph.validate()
+	deAVG(RandomHistory(5, 5).avg()).validate()
 
 if __name__ == "__main__":
 	test_main()

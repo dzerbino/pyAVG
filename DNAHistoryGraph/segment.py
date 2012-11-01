@@ -25,6 +25,10 @@ class Segment(object):
 	def __copy__(self):
 		return Segment(self.sequence)
 
+	def sides(self):
+		""" Returns list of segment sides """
+		return [self.left, self.right]
+
 	##########################
 	## Lifted labels
 	##########################
@@ -106,12 +110,6 @@ class Segment(object):
 			threads.add(thread)
 
 			return threads, segmentThreads
-
-	##########################
-	## Modules
-	##########################
-	def modules(self, data):
-		return reduce(lambda X, Y: Y.modules(X), [self.left, self.right], data)
 
 	##########################
 	## Output

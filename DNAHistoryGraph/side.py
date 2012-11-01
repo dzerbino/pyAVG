@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import module
+import liftedEdge
 
 class Side(object):
 	""" Segment side in DNA history graph """
@@ -61,55 +62,67 @@ class Side(object):
 		else:
 			return self.parent()._ancestor2()
 
-	def _liftedBonds2(self):
+	def _liftedPartners2(self):
+		""" Recursive element of liftedPartners """
 		if self.bond is None:
-			liftingBonds = sum([X._liftedBonds2() for X in self.children()], [])
-			if len(liftingBonds) < 2:
-				return liftingBonds
+			liftingPartners = sum([X._liftedPartners2() for X in self.children()], [])
+			if len(liftingPartners) < 2:
+				# Unattached bond on linear lifting path 
+				return liftingPartners
 			else:
-				return [(X[0], True) for X in liftingBonds]
+				# Unattached bond junction!!
+				return [(X[0], True) for X in liftingPartners]
 		else:
 			target = self.bond.ancestor()
 			return [(target, target is not self.ancestor().bond)]
 
-	def liftedBonds(self):
-		return sum([X._liftedBonds2() for X in self.children()], [])
+	def liftedPartners(self):
+		""" Returns list of tuples (lifted edge partner of self, is non trivial) """
+		return sum([X._liftedPartners2() for X in self.children()], [])
 
-	def nonTrivialLiftedEdges(self):
-		return [X[0] for X in self.liftedBonds() if X[1]]
+	def nonTrivialLiftedPartners(self):
+		""" Return list of non trivial lifted edge partners """
+		return [X[0] for X in self.liftedPartners() if X[1]]
 
 	##############################
 	## Ambiguity
 	##############################
 
 	def rearrangementAmbiguity(self):
-		return max(0, len(self.nonTrivialLiftedEdges()) - 1)
+		# Note: self looping lifted edges are already reported twice so the formula is correct
+		return max(0, len(self.nonTrivialLiftedPartners()) - 1)
 
 	##############################
 	## Modules
 	##############################
 	def _expandModule(self, module):
+		selfLoops = 0
 		module.sides.add(self)
 		if self.bond is not None and self.bond not in module.sides:
 			self.bond._expandModule(module)
-		for liftedEdge in self.nonTrivialLiftedEdges():
-			if liftedEdge <= self:
-				module.nonTrivialLiftedEdges.append(frozenset((self, liftedEdge)))
-			if liftedEdge not in module.sides:
-				liftedEdge._expandModule(module)
+		for partner in self.nonTrivialLiftedPartners():
+			if partner is self:
+				selfLoops += 1
+			if partner < self:
+				module.nonTrivialLiftedEdges.append(liftedEdge.LiftedEdge((self, partner)))
+			if partner not in module.sides:
+				partner._expandModule(module)
+		for i in range(selfLoops / 2):
+			# Note: each self loop is reported twice in the list (one for each incidence)	
+			module.nonTrivialLiftedEdges.append(liftedEdge.LiftedEdge((self, self)))
 
 	def modules(self, data):
 		""" Returns a list of modules and a set of already visited sides """
 		modules, visited = data
 		if self in visited:
 			return data
-		if self.bond is None and self.segment.parent is not None:
-			# If just a linear side which does not belong to the lifted graph
-			return data
 		else:
 			M = module.Module()
 			self._expandModule(M)
 			return modules + [M], visited | M.sides
+
+	def isModuleMaterial(self):
+		return self.bond is not None or (self.segment.parent is None and len(self.liftedPartners()) > 1)
 
 	##############################
 	## Output
