@@ -1,21 +1,31 @@
 #!/usr/bin/env python
 
-from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from pyAVG.inputs.simulator import RandomHistory
+from deAVG import deAVG
+import moves
+
+def listPossibleExtensions(graph):
+	return sum([detector(graph) for detector in moves.detectors], [])
 
 def tryExtension(graph):
+	possibleExtensions = listPossibleExtensions(graph)
+	assert len(possibleExtensions) > 0
+	chosenExtension = random.random(possibleExtensions)	
+	return chosenExtension.function(chosenExtension.data)
+
+def graphElements(graph):
+	return list(graph.segments) + filter(lambda X: X.bond is not None, graph.sides()) + [segment.label for segment in graph.segments if segment.label is not None]
 
 def reAVG(graph):
 	new = copy.copy(graph)
-	new.markElem
-	while not copy.isAVG():
-		copy = tryExtension(copy)
-	return copy 
+	new.irreducibleElements = graphElements(new)
+	while not new.isAVG():
+		new = tryExtension(new)
+	return new 
 
 def test_main():
 	history = RandomHistory(10, 10)
-	avg = history.avg()
-	graph = deAVG(avg)
+	graph = deAVG(history.avg())
 	avg2 = reAVG(graph)
 	assert avg2.validate()
 	assert avg2.isAVG()
