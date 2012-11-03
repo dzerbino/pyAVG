@@ -23,6 +23,9 @@ class Side(object):
 	def __cmp__(self, other):
 		return cmp(id(self), id(other))
 
+	def __hash__(self):
+		return id(self)
+
 	def createBond(self, other):
 		self.bond = other
 		other.bond = self
@@ -50,6 +53,15 @@ class Side(object):
 	##############################
 	## Lifted edges
 	##############################
+	def _hasAttachedDescent(self):
+		if self.bond is not None:
+			return True
+		else:
+			return any(X._hasAttachedDescent() for X in self.children)
+
+	def isJunction(self):
+		return len(self.children) > 2 and sum(X._hasAttachedDescent() for X in self.children) > 2
+
 	def _ancestor2(self):
 		if self.bond is not None or self.parent() is None:
 			return self
@@ -65,13 +77,14 @@ class Side(object):
 	def _liftedPartners2(self):
 		""" Recursive element of liftedPartners """
 		if self.bond is None:
-			liftingPartners = sum([X._liftedPartners2() for X in self.children()], [])
-			if len(liftingPartners) < 2:
-				# Unattached bond on linear lifting path 
-				return liftingPartners
-			else:
+			childLiftedBonds = [X._liftedPartners2() for X in self.children()]
+			liftingPartners = sum(childLiftedBonds, [])
+			if sum(len(X) > 0 for X in childLiftedBonds) > 1:
 				# Unattached bond junction!!
 				return [(X[0], True) for X in liftingPartners]
+			else:
+				# Unattached bond on linear lifting path 
+				return liftingPartners
 		else:
 			target = self.bond.ancestor()
 			return [(target, target is not self.ancestor().bond)]

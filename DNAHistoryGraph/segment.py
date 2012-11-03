@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import side
-from thread import Thread
+import thread
 from traversal import Traversal
 from label import Label
 
@@ -31,6 +31,9 @@ class Segment(object):
 	def __str__(self):
 		return str(self.label)
 
+	def __hash__(self):
+		return id(self)
+
 	def sides(self):
 		""" Returns list of segment sides """
 		return [self.left, self.right]
@@ -44,6 +47,12 @@ class Segment(object):
 		""" Removes branch between segments """
 		self.children.remove(other)
 		other.parent = None
+
+	def getSide(self, left):
+		if left:
+			return self.left
+		else:
+			return self.right
 
 	##########################
 	## Lifted labels
@@ -84,6 +93,9 @@ class Segment(object):
 	def liftedLabels(self):
 		""" Returns tuple of lifted labels (X, Y), where X is lifted label, and Y determines whether X is non-trivial """
 		return sum([X._liftedLabels2() for X in self.children], [])
+	
+	def isJunction(self):
+		return sum(lambda X: len(X) > 0, [X._liftedLabels2() for X in self.children]) > 1
 
 	def nonTrivialLiftedLabels(self):
 		return [X[0] for X in self.liftedLabels() if X[1]]
@@ -113,7 +125,7 @@ class Segment(object):
 	## Threads
 	##########################
 	def thread(self):
-		return Thread([Traversal(self, True)])
+		return thread.Thread([Traversal(self, True)])
 
 	def threads(self, data):
 		threads, segmentThreads = data
@@ -133,7 +145,7 @@ class Segment(object):
 	def dot(self):
 		lines = ["%i [label=%s]" % (id(self), str(self.label))]
 		if self.parent is not None:
-			if self.parent.label != self.label:
+			if self.parent.label == self.label:
 				lines.append("%i -> %i [color=green]" % (id(self.parent), id(self)))
 			else:
 				lines.append("%i -> %i [color=blue]" % (id(self.parent), id(self)))

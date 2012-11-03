@@ -65,19 +65,21 @@ class PartialOrderSet(set):
 		"""Removes element from a poset and all the incident constraints"""
 		if elem in self.roots:
 			self.roots.remove(elem)
-		else:
-			assert elem in self.parents
+
+		if elem in self.parents:
 			for parent in self.parents[elem]:
 				self.children[parent].remove(elem)
+			del self.parents[elem]
 
 		if elem in self.children:
 			for child in self.children[elem]:
 				self.parents[child].remove(elem)
+			del self.children[elem]
 
 		depth = self.depth[elem]
 		del self.depth[elem]
 		self.depths = dict((X, self._correctedDepth(X, depth)) for X in self.depth)
-		self.remove(elem)
+		super(PartialOrderSet, self).remove(elem)
 		return elem
 
 	####################################################
@@ -129,10 +131,8 @@ class PartialOrderSet(set):
 		Adds an ordering constraint between two elements in the set, updating the ordering if necessary. 
 		Refuses the addition and raises RuntimeError if a contradiction would be created by the addition.
 		"""
-		if ancestral not in self:
-			self.addElement(ancestral)
-		if derived not in self:
-			self.addElement(derived)
+		assert ancestral in self
+		assert derived in self
 
 		lower = self.depth[derived]
 		upper = self.depth[ancestral]
@@ -196,6 +196,14 @@ class PartialOrderSet(set):
 		self._validateRoots()
 		return True
 
+	###########################################
+	## Unit test
+	###########################################
+	def dot2(self, elem):
+		return "\n".join(["%i -> %i" % (id(elem), id(child)) for child in self.children[elem]])
+
+	def dot(self):
+		return "\n".join(["digraph G {"] + [self.dot2(X) for X in self.children] + ["}"]) 
 ###########################################
 ## Unit test
 ###########################################
