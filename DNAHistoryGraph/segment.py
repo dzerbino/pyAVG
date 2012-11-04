@@ -150,7 +150,8 @@ class Segment(object):
 			else:
 				lines.append("%i -> %i [color=blue]" % (id(self.parent), id(self)))
 		lines.append(self.left.dot())
-		lines.append(self.right.dot())
+		if self.left.bond is not self.right:
+			lines.append(self.right.dot())
 		return "\n".join(lines)	
 		
 	

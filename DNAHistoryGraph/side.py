@@ -3,6 +3,15 @@
 import module
 import liftedEdge
 
+def _junctionsOnTheWay(side):
+	ancestor = side.ancestor()
+	parent = side.parent()
+	while parent is not None and parent is not ancestor:
+		if parent.isJunction():
+			return True
+		parent = parent.parent()
+	return False
+
 class Side(object):
 	""" Segment side in DNA history graph """
 
@@ -57,10 +66,10 @@ class Side(object):
 		if self.bond is not None:
 			return True
 		else:
-			return any(X._hasAttachedDescent() for X in self.children)
+			return any(X._hasAttachedDescent() for X in self.children())
 
 	def isJunction(self):
-		return len(self.children) > 2 and sum(X._hasAttachedDescent() for X in self.children) > 2
+		return len(self.children()) > 2 and sum(X._hasAttachedDescent() for X in self.children()) > 2
 
 	def _ancestor2(self):
 		if self.bond is not None or self.parent() is None:
@@ -87,11 +96,15 @@ class Side(object):
 				return liftingPartners
 		else:
 			target = self.bond.ancestor()
-			return [(target, target is not self.ancestor().bond)]
+			return [(target, target is not self.ancestor().bond or _junctionsOnTheWay(target))]
 
 	def liftedPartners(self):
 		""" Returns list of tuples (lifted edge partner of self, is non trivial) """
-		return sum([X._liftedPartners2() for X in self.children()], [])
+		if self.parent() is not None or self.bond is None:
+			return sum([X._liftedPartners2() for X in self.children()], [])
+		else:
+			# Special case for root nodes which are their own ancestors
+			return sum([X._liftedPartners2() for X in self.children()], [(self.bond.ancestor(), self.bond.segment.parent is not None)])
 
 	def nonTrivialLiftedPartners(self):
 		""" Return list of non trivial lifted edge partners """

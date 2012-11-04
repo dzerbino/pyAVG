@@ -66,20 +66,22 @@ class PartialOrderSet(set):
 		if elem in self.roots:
 			self.roots.remove(elem)
 
-		if elem in self.parents:
-			for parent in self.parents[elem]:
-				self.children[parent].remove(elem)
-			del self.parents[elem]
+		for parent in self.parents[elem]:
+			self.children[parent].remove(elem)
+		del self.parents[elem]
 
-		if elem in self.children:
-			for child in self.children[elem]:
-				self.parents[child].remove(elem)
-			del self.children[elem]
+		for child in self.children[elem]:
+			assert child in self.parents
+			assert elem is not child
+			assert elem in self.parents[child]
+			self.parents[child].remove(elem)
+		del self.children[elem]
 
 		depth = self.depth[elem]
 		del self.depth[elem]
-		self.depths = dict((X, self._correctedDepth(X, depth)) for X in self.depth)
+		self.depth = dict((X, self._correctedDepth(X, depth)) for X in self.depth)
 		super(PartialOrderSet, self).remove(elem)
+	
 		return elem
 
 	####################################################
@@ -157,6 +159,7 @@ class PartialOrderSet(set):
 	def removeConstraint(self, parent, child):
 		"""Removes an ordering constraint between two elements in the set"""
 		self.parents[child].remove(parent)
+		self.children[parent].remove(child)
 		if len(self.parents[child]) == 0:
 			self.roots.add(child)
 
@@ -167,33 +170,39 @@ class PartialOrderSet(set):
 		assert all(X in self for X in self.children)
 		for X in self.children:
 			for Y in self.children[X]:
-				Y in self
-				X in self.parents[Y]
-				self.depth[Y] > self.depth[X]
+				assert Y in self
+				assert X in self.parents[Y]
+				assert self.depth[Y] > self.depth[X]
+		return True
 
 	def _validateParents(self):
 		assert all(X in self for X in self.parents)
 		for X in self.parents:
 			for Y in self.parents[X]:
-				Y in self
-				X in self.children[Y]
-				self.depth[Y] < self.depth[X]
+				assert Y in self
+				assert X in self.children[Y]
+				assert self.depth[Y] < self.depth[X]
+		return True
 
 	def _validateRoots(self):
 		assert all(X in self for X in self.roots)
 		assert all(len(self.parents[X]) == 0 for X in self.roots)
+		return True
 
 	def _validateDepth(self):
 		assert all(X in self for X in self.depth)
+		assert len(self) == len(self.depth)
+		assert len(set(self.depth.values())) == len(self.depth.values()), str(sorted(self.depth.values()))
+		return True
 
 	def validate(self):
 		"""
 		Validation
 		"""
-		self._validateChildren()
-		self._validateParents()
-		self._validateDepth()
-		self._validateRoots()
+		assert self._validateChildren()
+		assert self._validateParents()
+		assert self._validateDepth()
+		assert self._validateRoots()
 		return True
 
 	###########################################
@@ -202,8 +211,11 @@ class PartialOrderSet(set):
 	def dot2(self, elem):
 		return "\n".join(["%i -> %i" % (id(elem), id(child)) for child in self.children[elem]])
 
+	def depthDot(self, elem):
+		return '\n'.join(['%i [label="%i (%i)"]' % (id(elem), id(elem), self.depth[elem])])
+
 	def dot(self):
-		return "\n".join(["digraph G {"] + [self.dot2(X) for X in self.children] + ["}"]) 
+		return "\n".join(["digraph G {"] + [self.depthDot(X) for X in self.depth] + [self.dot2(X) for X in self.children] + ["}"]) 
 ###########################################
 ## Unit test
 ###########################################

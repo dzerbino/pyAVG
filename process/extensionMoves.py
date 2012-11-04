@@ -36,20 +36,22 @@ def applyCase1(args):
 	segment, graph = args
 	if segment.label is None:
 		# In an ideal world Fitch parsimony would be a nice touch...
+		print 'Adding junction label'
 		segment.label = Label(random.choice(['A','T'])) 
 	else:
 		children = list(segment.children)
 		children.pop(random.randrange(len(children)))
 		if len(children) == 1 and children[0].label is None and random.random() < 0.5:
+			print 'Labelling child'
 			bridge = children[0]
 		else:
+			print 'Adding label bridge'
 			bridge = graph.newSegment()
 			for child in children:
 				graph.deleteBranch(segment, child)
 				graph.createBranch(bridge, child) 
 			graph.createBranch(segment, bridge)
 		bridge.label = Label(segment.label)
-	graph.validate()
 
 ###############################################
 ## Case 2
@@ -65,65 +67,83 @@ def applyCase2(args):
 		# In an ideal world Fitch parsimony would be a nice touch...
 		ancestor = side.ancestor()
 		if ancestor is not None and ancestor.bond is not None:
+			print 'Pulling down junction bond'
 			# Pulling down
 			# Note: not ping pong
 			segment = graph.newSegment()
 			graph.createBranch(ancestor.bond.segment, segment)
-			graph.validate()
 			assert graph.eventGraph.testConstraint(graph.sideThread(ancestor), graph.sideThread(side))
 			assert graph.eventGraph.testConstraint(graph.sideThread(ancestor.bond), graph.sideThread(side))
 			graph.createBond(side, segment.getSide(ancestor.bond.left))
-			graph.validate()
 		else:	
+			print 'Pulling up junction bond'
 			# Pulling up
 			liftedEdges = [X[0] for X in side.liftedPartners()]
 			target = getMajority(liftedEdges)
 
-			if graph.eventGraph.testConstraint(graph.sideThread(target), graph.sideThread(side)):
-				if graph.eventGraph.testConstraint(graph.sideThread(side), graph.sideThread(target)):
-					# side must be connected to that very target, not a child
-					if target.bond is not None:	
-						# Stubbing
-						segment = graph.newSegment()
-						target = segment.left
-						graph.createBond(side, target)
-						graph.validate()
-					else:
-						graph.createBond(side, target)
-						graph.validate()
+			if graph.sideThread(side) is graph.sideThread(target):
+				# Same thread => must connect side to target directly
+				if target.bond is None:
+					print 'Direct graft'
+					graph.createBond(side, target)
 				else:
-					# Pulling down from target
-					segment = graph.newSegment()
-					graph.createBranch(target.segment, segment)
-					graph.createBond(side, segment.getSide(target.left))
-					graph.validate()
-			else:
-				# Stubbing
+					print 'Stubbing simulatenous bond confusion'
+					graph.createBond(side, graph.newSegment().left)
+
+			elif graph.eventGraph.testConstraint(graph.sideThread(target), graph.sideThread(side)):
+				# if current side is not older than target create child
+				# Note interpolating child could be a good idea, but we have coalescence correction to correct for that
 				segment = graph.newSegment()
-				graph.createBond(side, segment.left)
-				graph.validate()
+				graph.createBranch(target.segment, segment)
+				graph.createBond(side, segment.getSide(target.left))
+
+			else:
+				# If target is definitely younger than current
+				if target.parent() is None:
+					# Aha you can give it a parent!
+					segment = graph.newSegment()
+					graph.createBranch(segment, target.segment)
+					graph.createBond(side, target.parent())
+				else:
+					# Stubbing
+					print 'Stubbing parent'
+					graph.createBond(side, graph.newSegment().left)
 			
 	else:
 		# Bridging
 		children = list(side.children())
 		children.pop(random.randrange(len(children)))
 		if len(children) == 1 and children[0].bond is None and random.random() < 0.5:
+			print 'Creating bridge bond on child'
 			bridge = children[0]
 		else:
 			bridgeS = graph.newSegment()
+			print 'Creating bridge bond on new segment', id(bridgeS)
 			for child in children:
 				graph.deleteBranch(side.segment, child.segment)
 				graph.createBranch(bridgeS, child.segment) 
-				graph.validate()
 			graph.createBranch(side.segment, bridgeS)
-			graph.validate()
 			bridge = bridgeS.getSide(side.left)
-		# Note: created segment is hanging but the ancestor of its partner, i.e. side, is not hanging, ergo no ping pong
-		segment = graph.newSegment()
-		graph.createBranch(side.bond.segment, segment)
-		graph.validate()
-		graph.createBond(bridge, segment.getSide(side.bond.left))
-		graph.validate()
+
+		stepChildren = filter(lambda X: graph.eventGraph.testConstraint(graph.sideThread(bridge), graph.sideThread(X)), side.bond.children())
+		if len(stepChildren) > 0:
+			stepChild = random.choice(stepChildren)
+			if graph.sideThread(stepChild) is graph.sideThread(bridge) and stepChild.bond is not None:
+				print 'Stupid bridge stub'
+				bridgePartnerS = graph.newSegment()
+				graph.createBranch(side.bond.segment, bridgePartnerS)
+
+			else:
+				print 'Interpolating bridge'
+				bridgePartnerS = graph.newSegment()
+				graph.deleteBranch(side.bond.segment, stepChild.segment)
+				graph.createBranch(bridgePartnerS, stepChild.segment) 
+				graph.createBranch(side.segment, bridgePartnerS)
+		else:
+			print 'Necessary bridge stub'
+			bridgePartnerS = graph.newSegment()
+			graph.createBranch(side.bond.segment, bridgePartnerS)
+		graph.createBond(bridge, bridgePartnerS.getSide(side.bond.left))
 		
 ###############################################
 ## Case 3
@@ -142,6 +162,5 @@ def applyCase3(args):
 		graph.deleteBranch(segment, child)
 		graph.createBranch(bridge, child) 
 	graph.createBranch(segment, bridge)
-	graph.validate()
 
 detectors = [listCase1, listCase2, listCase3]

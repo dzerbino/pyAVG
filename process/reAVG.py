@@ -4,6 +4,7 @@ import random
 
 from pyAVG.inputs.simulator import RandomHistory
 from pyAVG.DNAHistoryGraph.extension import GraphExtension
+from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from deAVG import deAVG
 import extensionMoves
 
@@ -18,12 +19,10 @@ def tryExtension(graph):
 
 def reAVG(graph):
 	new = GraphExtension(graph)
-	assert new.isGBounded()
-	new.validate()
 	while not new.isAVG():
 		tryExtension(new)
-		new.validate()
-		#assert new.isGBounded()
+		new.makeGBounded()
+		assert new.isGBounded()
 	return new 
 
 def test_main():
@@ -33,9 +32,7 @@ def test_main():
 	assert avg2.validate()
 	assert avg2.isAVG()
 	assert avg2.substitutionCost() >= graph.substitutionCost(lowerBound=True)
-	assert avg2.substitutionCost() <= graph.substitutionCost(lowerBound=False)
 	assert avg2.rearrangementCost() >= graph.rearrangementCost(lowerBound=True)
-	assert avg2.rearrangementCost() <= graph.rearrangementCost(lowerBound=False)
 
 if __name__ == "__main__":
 	test_main()

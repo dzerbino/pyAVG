@@ -86,13 +86,7 @@ class DNAHistoryGraph(object):
 			self.eventGraph.removeConstraint(self.segmentThreads[segmentA], self.segmentThreads[segmentB])		
 
 	def createBond(self, sideA, sideB):
-		self.validate()
 		""" Creates bond between two sides and throws RuntimeError if cycle created """
-		if not self.eventGraph.testConstraint(self.sideThread(sideA),self.sideThread(sideB)) or not self.eventGraph.testConstraint(self.sideThread(sideB),self.sideThread(sideA)):
-			print self.dot()
-			print self.eventGraph.dot()
-			print id(sideA.segment), id(sideB.segment)
-			assert False
 		if sideA.bond is not None and sideA.bond is not sideB:
 			self.deleteBond(sideA)
 		sideA.createBond(sideB)
@@ -102,7 +96,6 @@ class DNAHistoryGraph(object):
 			newThread = sideA.segment.thread()
 
 			# Updating self.eventGraph
-			self.validate()
 			self.eventGraph.add(newThread)
 			self.eventGraph.remove(oldThread)
 			self.eventGraph.remove(oldThread2)
@@ -114,13 +107,10 @@ class DNAHistoryGraph(object):
 				    for child in traversal.segment.children:
 					    self.eventGraph.addConstraint(newThread, self.segmentThreads[child])
 			except RuntimeError:
-				self.validate()
 				print self.dot()
 				print self.eventGraph.dot()
 				print id(sideA.segment), id(sideB.segment)
 				assert False
-			self.validate()
-		self.validate()
 		
 	def deleteBond(self, sideA):
 		""" Deletes bond between two sides and updates event graph """
@@ -129,26 +119,24 @@ class DNAHistoryGraph(object):
 		if sideB is not None:
 			thread = sideA.segment.thread()
 			if sideB not in thread:
-				oldThread = self.segmentThreads[sideA]
+				oldThread = self.sideThread(sideA)
 				thread2 = sideB.segment.thread()
 
-				# Updating self.segmentThreads
-				for segment in thread:
-					self.segmentThreads[segment] = thread
-				for segment in thread2:
-					self.segmentThreads[segment] = thread2
-
 				# Updating self.eventGraph
-				self.eventGraph.pop(oldThread)
+				self.eventGraph.remove(oldThread)
 				self.eventGraph.add(thread)
 				self.eventGraph.add(thread2)
-				for segment in thread:
-					self.eventGraph.addConstraint(self.segmentThreads[segment.parent], thread)
-					for child in segment.children:
+				for traversal in thread:
+					self.segmentThreads[traversal.segment] = thread
+					if traversal.segment.parent is not None:
+						self.eventGraph.addConstraint(self.segmentThreads[traversal.segment.parent], thread)
+					for child in traversal.segment.children:
 						self.eventGraph.addConstraint(thread, self.segmentThreads[child])
-				for segment in thread2:
-					self.eventGraph.addConstraint(self.segmentThreads[segment.parent], thread2)
-					for child in segment.children:
+				for traversal in thread2:
+					self.segmentThreads[traversal.segment] = thread2
+					if traversal.segment.parent is not None:
+						self.eventGraph.addConstraint(self.segmentThreads[traversal.segment.parent], thread2)
+					for child in traversal.segment.children:
 						self.eventGraph.addConstraint(thread2, self.segmentThreads[child])
 
 	def areSiblings(self, threadA, threadB):
@@ -203,7 +191,7 @@ class DNAHistoryGraph(object):
 		assert all(X.validate() for X in self.segments)
 		assert all(X.parent in self.segments for X in self.segments if X.parent is not None)
 		assert all(X.parent in self.segmentThreads for X in self.segments if X.parent is not None)
-		assert all(self.segmentThreads[X] in self.eventGraph for X in self.segments if X.parent is not None)
+		assert all(self.segmentThreads[X] in self.eventGraph for X in self.segments)
 		assert all(self.segmentThreads[X.parent] in self.eventGraph.parents[self.segmentThreads[X]] for X in self.segments if X.parent is not None)
 		assert all(self.segmentThreads[X] in self.eventGraph.children[self.segmentThreads[X.parent]] for X in self.segments if X.parent is not None)
 		assert all(Y in self.segments for X in self.segments for Y in X.children)
