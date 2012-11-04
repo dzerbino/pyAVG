@@ -19,10 +19,15 @@ def tryExtension(graph):
 
 def reAVG(graph):
 	new = GraphExtension(graph)
+	count = 0
 	while not new.isAVG():
 		tryExtension(new)
 		new.makeGBounded()
 		assert new.isGBounded()
+		count += 1
+		if count > 100:
+			print new.dot()
+			assert False
 	return new 
 
 def test_main():

@@ -113,7 +113,19 @@ def applyCase2(args):
 		# Bridging
 		children = list(side.children())
 		children.pop(random.randrange(len(children)))
-		if len(children) == 1 and children[0].bond is None and random.random() < 0.5:
+		if len(children) == 0:
+			print 'Fixing root node conundrum'
+			segment = graph.newSegment()
+			graph.createBranch(segment, side.segment)
+			segment2 = graph.newSegment()	
+			if side.bond.parent() is not None:
+				parent = side.bond.segment.parent
+				graph.deleteBranch(parent, side.bond.segment)
+				graph.createBranch(parent, segment2)
+			graph.createBranch(segment2, side.bond.segment)
+			graph.createBond(side.parent(), side.bond.parent())
+			return
+		elif len(children) == 1 and children[0].bond is None and random.random() < 0.5:
 			print 'Creating bridge bond on child'
 			bridge = children[0]
 		else:
@@ -128,11 +140,13 @@ def applyCase2(args):
 		stepChildren = filter(lambda X: graph.eventGraph.testConstraint(graph.sideThread(bridge), graph.sideThread(X)), side.bond.children())
 		if len(stepChildren) > 0:
 			stepChild = random.choice(stepChildren)
-			if graph.sideThread(stepChild) is graph.sideThread(bridge) and stepChild.bond is not None:
-				print 'Stupid bridge stub'
-				bridgePartnerS = graph.newSegment()
-				graph.createBranch(side.bond.segment, bridgePartnerS)
-
+			if graph.sideThread(stepChild) is graph.sideThread(bridge):
+				if stepChild.bond is not None:
+					print 'Stupid bridge stub'
+					bridgePartnerS = graph.newSegment()
+					graph.createBranch(side.bond.segment, bridgePartnerS)
+				else:
+					bridgePartnerS = stepChild.segment
 			else:
 				print 'Interpolating bridge'
 				bridgePartnerS = graph.newSegment()

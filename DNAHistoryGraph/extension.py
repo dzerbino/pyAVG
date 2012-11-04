@@ -55,7 +55,7 @@ def hasGReducibleLabel(segment, graph):
 	if segment.label is None or segment.label in graph.irreducibleLabels:
 		return False
 
-	L = segment.liftedEdges()
+	L = segment.liftedLabels()
 	if len(L) == 0:
 		# Leaf
 		return True
@@ -192,8 +192,15 @@ def isPingSide(side, graph):
 	return isHanging(side) and side.ancestor().bond is not None and side.ancestor().bond.segment not in graph.irreducibleSegments and not isHanging(side.ancestor().bond)
 
 def isPing(segment, graph):
-	return segment not in graph.irreducibleSegments and isPingSide(segment.left, graph) and isPingSide(segment.right, graph)
+	return segment not in graph.irreducibleSegments and isPingSide(segment.left, graph) and isPingSide(segment.right, graph) and (segment.left.bond is None or segment.right.bond is None)
 
 def hasNoGReduciblePingPongs(graph):
 	assert all(not isPing(X, graph) for X in graph.segments)
 	return True
+
+def removePingPong(segment):
+	if segment.left.bond is not None:
+		o
+
+def removeGReduciblePingPongs(graph):
+	map(lambda X: removePingPong(X, graph), graph.segments)
