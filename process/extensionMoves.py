@@ -119,6 +119,7 @@ def applyCase2(args):
 			graph.createBranch(segment, side.segment)
 			segment2 = graph.newSegment()	
 			if side.bond.parent() is not None:
+				print 'INTERPOL'
 				parent = side.bond.segment.parent
 				graph.deleteBranch(parent, side.bond.segment)
 				graph.createBranch(parent, segment2)

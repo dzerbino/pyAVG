@@ -158,11 +158,8 @@ def isGReducibleSegment(segment, graph):
 	elif segment.parent is None and len(segment.children) == 0 and segment.left.bond is None and segment.right.bond is None:
 		# Isolated segment
 		return True
-	elif segment.label is None and segment.left.bond is None and segment.right.bond is None and segment.parent is None and len(segment.children) == 1:
-		# Free headed branch
-		return True
-	elif segment.label is None and segment.left.bond is None and segment.right.bond is None and len(segment.children) == 0:
-		# Free tailed branch with at most one child
+	elif segment.label is None and segment.left.bond is None and segment.right.bond is None and len(segment.children) <= 1:
+		# Free tailed branch with at most one child or free headed branch
 		return True
 	else:
 		# None of the above
@@ -174,7 +171,12 @@ def hasNoGReducibleSegments(graph):
 
 def removeGReducibleSegment(segment, graph):
 	if isGReducibleSegment(segment, graph):
-		segment.disconnect()
+		for child in list(segment.children):
+			graph.deleteBranch(segment, child)
+			if segment.parent is not None:
+				graph.createBranch(segment.parent, child)
+		if segment.parent is not None:
+			segment.parent.children.remove(segment)
 		graph.eventGraph.remove(graph.segmentThreads[segment])
 		del graph.segmentThreads[segment]
 		graph.segments.remove(segment)
