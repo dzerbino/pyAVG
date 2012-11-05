@@ -19,11 +19,9 @@ def tryExtension(graph):
 
 def reAVG(graph):
 	new = GraphExtension(graph)
-	new.validate()
 	count = 0
 	while not new.isAVG():
 		tryExtension(new)
-		new.validate()
 		new.makeGBounded()
 		count += 1
 		if count > 1000:
@@ -39,7 +37,6 @@ def test_main():
 	assert avg2.isAVG()
 	assert avg2.substitutionCost() >= graph.substitutionCost(lowerBound=True)
 	assert avg2.rearrangementCost() >= graph.rearrangementCost(lowerBound=True)
-	print avg2.dot()
 
 if __name__ == "__main__":
 	test_main()

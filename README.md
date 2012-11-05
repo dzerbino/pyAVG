@@ -9,6 +9,13 @@ Implementation of the DNA history data structure. Currently, implementation of t
 - Complexity evaluation (upper and lower)
 - Random generation of AVGs and DNA history graphs (->unit testing)
 - Graphviz output
-
-Ongoing
 - Sampling of AVG extensions thru Ben`s algos
+
+To run:
+1. Set your PYTHONPATH to find the current directory.
+2. python process/reAVG.py
+	* Creates a random History
+	* Creates an AVG (pseudo) realization of the history
+	* Removes random elements from the AVG to produce a DNA history graph
+	* Tries to construct an AVG extension of the DNA history graph using the heuristic moves
+

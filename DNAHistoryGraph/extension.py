@@ -31,10 +31,8 @@ class GraphExtension(DNAHistoryGraph):
 		return hasNoGReducibleLabels(self) and hasNoGReducibleSegments(self) and hasNoGReducibleBonds(self) and hasNoGReduciblePingPongs(self)
 
 	def makeGBounded(self):
-		self.validate()
 		while self.removeGReducibleElements():
 			pass
-		self.validate()
 
 	def removeGReducibleElements(self):
 		A = removeGReducibleLabels(self) 

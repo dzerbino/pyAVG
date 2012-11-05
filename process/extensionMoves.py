@@ -80,18 +80,15 @@ def applyCase2(args):
 			# Pulling up
 			liftedEdges = [X[0] for X in side.liftedPartners()]
 			target = getMajority(liftedEdges)
-			graph.validate()
 
 			if graph.sideThread(side) is graph.sideThread(target):
 				# Same thread => must connect side to target directly
 				if target.bond is None:
 					print 'Direct graft'
 					graph.createBond(side, target)
-					graph.validate()
 				else:
 					print 'Stubbing simulatenous bond confusion'
 					graph.createBond(side, graph.newSegment().left)
-					graph.validate()
 
 			elif graph.eventGraph.testConstraint(graph.sideThread(target), graph.sideThread(side)):
 				# if current side is not older than target create child
@@ -99,7 +96,6 @@ def applyCase2(args):
 				segment = graph.newSegment()
 				graph.createBranch(target.segment, segment)
 				graph.createBond(side, segment.getSide(target.left))
-				graph.validate()
 
 			else:
 				# If target is definitely younger than current
@@ -108,19 +104,16 @@ def applyCase2(args):
 					segment = graph.newSegment()
 					graph.createBranch(segment, target.segment)
 					graph.createBond(side, target.parent())
-					graph.validate()
 				else:
 					# Stubbing
 					print 'Stubbing parent'
 					graph.createBond(side, graph.newSegment().left)
-					graph.validate()
 			
 	else:
 		# Bridging
 		children = filter(lambda X: X.bond is not None or len(X.liftedPartners()) > 0, side.children())
 		if len(children) == 1:
 			if side.parent() is None:
-				graph.validate()
 				print 'Root bridge'
 				segment = graph.newSegment()
 				graph.createBranch(side.segment, segment)
@@ -130,7 +123,6 @@ def applyCase2(args):
 				segment2 = graph.newSegment()	
 				graph.createBranch(side.bond.segment, segment2)
 				graph.createBond(segment.getSide(side.left), segment2.getSide(side.bond.left))
-				graph.validate()
 			else:
 				print 'Ignoring badness due to unattached junctions below'
 			return
