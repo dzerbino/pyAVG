@@ -2,6 +2,7 @@
 
 import copy
 from graph import DNAHistoryGraph
+from label import Label
 
 class GraphExtension(DNAHistoryGraph):
 	def __init__(self, reduction):
@@ -22,30 +23,41 @@ class GraphExtension(DNAHistoryGraph):
 				duplicates[segment].parent = duplicates[segment.parent]
 			duplicates[segment].children = set(duplicates[X] for X in segment.children)
 		super(GraphExtension, self).__init__(duplicates)
-		self.irreducibleSegments = list(self.segments) 
-		self.irreducibleSides = filter(lambda X: X.bond is not None, self.sides()) 	
-		self.irreducibleLabels = [segment.label for segment in self.segments if segment.label is not None]
+		self.irreducibleSegments = frozenset(self.segments) 
+		self.irreducibleSides = frozenset(filter(lambda X: X.bond is not None, self.sides()))
+		self.irreducibleLabels = frozenset(segment.label for segment in self.segments if segment.label is not None)
 
 	def isGBounded(self):
 		return hasNoGReducibleLabels(self) and hasNoGReducibleSegments(self) and hasNoGReducibleBonds(self) and hasNoGReduciblePingPongs(self)
 
 	def makeGBounded(self):
+		self.validate()
 		while self.removeGReducibleElements():
 			pass
+		self.validate()
 
 	def removeGReducibleElements(self):
 		A = removeGReducibleLabels(self) 
 		B = removeGReducibleSegments(self) 
 		C = removeGReducibleBonds(self)
-		return A + B + C > 0
-		#removeGReduciblePingPongs(self)
+		D = removeGReduciblePingPongs(self)
+		return A > 0 or B > 0 or C > 0 or D > 0
+
+	##################################
+	## Output
+	##################################
+	def irreducibleDot(self):
+		return ['node [style=filled]'] + [str(id(X)) for X in self.irreducibleSegments] + ['node [style=none]']
+
+	def dot(self):
+		return "\n".join(["digraph G {"] + self.irreducibleDot() + [X.dot() for X in self.eventGraph] + ["}"])
 
 def isNonTrivialLift(segment):
 	ancestor = segment.ancestor()
 	if segment.label != ancestor.label:
 		return True
 	parent = segment.parent
-	while parent is not ancestor:
+	while parent is not None and parent is not ancestor:
 		if parent.isJunction():
 			return True
 		parent = parent.parent
@@ -82,6 +94,7 @@ def hasNoGReducibleLabels(graph):
 def removeGReducibleLabel(segment, graph):
 	if hasGReducibleLabel(segment, graph):
 		segment.label = None
+		print 'G-Reducible label REMOVED'
 		return 1
 	else:
 		return 0
@@ -124,15 +137,18 @@ def isGReducibleBond(side, graph):
 
 	if len(liftedA) == 0 and len(liftedB) == 0:
 		# Leaf
+		print 'LEAFL', id(side)
 		return True
 	elif (len(liftedA) > 1 or len(liftedB) > 1):
 		# Junction or complex
 		return False
 	elif len(liftedA) == 1 and len(liftedB) == 1 and not liftedA[0][1] and not liftedB[0][1]:
 		# Redundant
+		print 'REDUNDANT', id(side)
 		return True
-	elif isNonTrivialLiftingBond(side):
+	elif len(liftedA) == 1 and len(liftedB) == 1 and isNonTrivialLiftingBond(side):
 		# Complicating
+		print 'COMPLICATING', id(side)
 		return True
 	else:
 		# Bridge
@@ -145,6 +161,7 @@ def hasNoGReducibleBonds(graph):
 def removeGReducibleBond(side, graph):
 	if isGReducibleBond(side, graph):
 		graph.deleteBond(side)
+		print 'G-reducible bond REMOVED'
 		return 1
 	else:
 		return 0
@@ -180,6 +197,7 @@ def removeGReducibleSegment(segment, graph):
 		graph.eventGraph.remove(graph.segmentThreads[segment])
 		del graph.segmentThreads[segment]
 		graph.segments.remove(segment)
+		print 'G-Reducible segment REMOVED'
 		return 1
 	else:
 		return 0
@@ -190,19 +208,30 @@ def removeGReducibleSegments(graph):
 def isHanging(side):
 	return len(side.liftedPartners()) == 0
 
-def isPingSide(side, graph):
-	return isHanging(side) and side.ancestor().bond is not None and side.ancestor().bond.segment not in graph.irreducibleSegments and not isHanging(side.ancestor().bond)
-
-def isPing(segment, graph):
-	return segment not in graph.irreducibleSegments and isPingSide(segment.left, graph) and isPingSide(segment.right, graph) and (segment.left.bond is None or segment.right.bond is None)
+def isPing(side, graph):
+	return side.bond is not None and side not in graph.irreducibleSides and isHanging(side) and side.ancestor().bond is not None and isHanging(side.ancestor().bond)
 
 def hasNoGReduciblePingPongs(graph):
-	assert all(not isPing(X, graph) for X in graph.segments)
+	assert all(not isPing(X, graph) for X in graph.sides())
 	return True
 
-def removePingPong(segment):
-	if segment.left.bond is not None:
-		o
+def removePingPong(side, graph):
+	if isPing(side, graph):
+		exPartner = side.bond
+		graph.deleteBond(side)
+		ancestor = exPartner.ancestor()
+		if exPartner.parent is not None and ancestor.bond is not None:
+			# Pull down correction
+			new = graph.newSegment()
+			graph.createBranch(ancestor.bond.segment, new)
+			graph.createBond(exPartner, new.getSide(ancestor.bond.left))
+			print 'Ping Pong corrected w/ pull down'
+		else:
+			# Stub
+			graph.createBond(exPartner, graph.newSegment().left)
+			print 'Ping Pong corrected w/ pull stub'
+		return 1
+	return 0
 
 def removeGReduciblePingPongs(graph):
-	map(lambda X: removePingPong(X, graph), graph.segments)
+	return sum(map(lambda X: removePingPong(X, graph), graph.sides()))

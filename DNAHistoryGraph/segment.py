@@ -88,17 +88,20 @@ class Segment(object):
 			else:
 				return [(X[0], True) for X in liftingLabels]
 		else:
-			return [(str(self), self.label != self.ancestor().label)]
+			return [(self.label, self.label != self.ancestor().label)]
 	
 	def liftedLabels(self):
 		""" Returns tuple of lifted labels (X, Y), where X is lifted label, and Y determines whether X is non-trivial """
 		return sum([X._liftedLabels2() for X in self.children], [])
 	
 	def isJunction(self):
-		return sum(lambda X: len(X) > 0, [X._liftedLabels2() for X in self.children]) > 1
+		return sum(X._liftedLabels2() > 0 for X in self.children) > 1
 
 	def nonTrivialLiftedLabels(self):
-		return [X[0] for X in self.liftedLabels() if X[1]]
+		if self.label is not None:
+			return [X[0] for X in self.liftedLabels() if X[1]]
+		else:
+			return [X[0] for X in self.liftedLabels()]
 
 	##########################
 	## Ambiguity
@@ -143,12 +146,21 @@ class Segment(object):
 	## Output
 	##########################
 	def dot(self):
-		lines = ["%i [label=%s]" % (id(self), str(self.label))]
+		label = str(self.label)	
+		if self.substitutionAmbiguity() > 0:
+			label += 'S'
+		if self.coalescenceAmbiguity() > 0:
+			label += 'C'
+		if self.left.rearrangementAmbiguity() > 0:
+			label += 'L'
+		if self.right.rearrangementAmbiguity() > 0:
+			label += 'R'
+		lines = ['%i [label="%s"]' % (id(self), label)]
 		if self.parent is not None:
 			if self.parent.label == self.label:
-				lines.append("%i -> %i [color=green]" % (id(self.parent), id(self)))
+				lines.append('%i -> %i [color=green]' % (id(self.parent), id(self)))
 			else:
-				lines.append("%i -> %i [color=blue]" % (id(self.parent), id(self)))
+				lines.append('%i -> %i [color=blue]' % (id(self.parent), id(self)))
 		lines.append(self.left.dot())
 		if self.left.bond is not self.right:
 			lines.append(self.right.dot())

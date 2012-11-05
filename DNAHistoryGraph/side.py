@@ -108,7 +108,10 @@ class Side(object):
 
 	def nonTrivialLiftedPartners(self):
 		""" Return list of non trivial lifted edge partners """
-		return [X[0] for X in self.liftedPartners() if X[1]]
+		if self.bond is not None:
+			return [X[0] for X in self.liftedPartners() if X[1]]
+		else:
+			return [X[0] for X in self.liftedPartners()]
 
 	##############################
 	## Ambiguity

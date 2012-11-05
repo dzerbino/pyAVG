@@ -39,7 +39,7 @@ def applyCase1(args):
 		print 'Adding junction label'
 		segment.label = Label(random.choice(['A','T'])) 
 	else:
-		children = list(segment.children)
+		children = filter(lambda X: X.label is not None or len(X.liftedLabels()) > 0, segment.children)
 		children.pop(random.randrange(len(children)))
 		if len(children) == 1 and children[0].label is None and random.random() < 0.5:
 			print 'Labelling child'
@@ -80,15 +80,18 @@ def applyCase2(args):
 			# Pulling up
 			liftedEdges = [X[0] for X in side.liftedPartners()]
 			target = getMajority(liftedEdges)
+			graph.validate()
 
 			if graph.sideThread(side) is graph.sideThread(target):
 				# Same thread => must connect side to target directly
 				if target.bond is None:
 					print 'Direct graft'
 					graph.createBond(side, target)
+					graph.validate()
 				else:
 					print 'Stubbing simulatenous bond confusion'
 					graph.createBond(side, graph.newSegment().left)
+					graph.validate()
 
 			elif graph.eventGraph.testConstraint(graph.sideThread(target), graph.sideThread(side)):
 				# if current side is not older than target create child
@@ -96,6 +99,7 @@ def applyCase2(args):
 				segment = graph.newSegment()
 				graph.createBranch(target.segment, segment)
 				graph.createBond(side, segment.getSide(target.left))
+				graph.validate()
 
 			else:
 				# If target is definitely younger than current
@@ -104,29 +108,34 @@ def applyCase2(args):
 					segment = graph.newSegment()
 					graph.createBranch(segment, target.segment)
 					graph.createBond(side, target.parent())
+					graph.validate()
 				else:
 					# Stubbing
 					print 'Stubbing parent'
 					graph.createBond(side, graph.newSegment().left)
+					graph.validate()
 			
 	else:
 		# Bridging
-		children = list(side.children())
-		children.pop(random.randrange(len(children)))
-		if len(children) == 0:
-			print 'Fixing root node conundrum'
-			segment = graph.newSegment()
-			graph.createBranch(segment, side.segment)
-			segment2 = graph.newSegment()	
-			if side.bond.parent() is not None:
-				print 'INTERPOL'
-				parent = side.bond.segment.parent
-				graph.deleteBranch(parent, side.bond.segment)
-				graph.createBranch(parent, segment2)
-			graph.createBranch(segment2, side.bond.segment)
-			graph.createBond(side.parent(), side.bond.parent())
+		children = filter(lambda X: X.bond is not None or len(X.liftedPartners()) > 0, side.children())
+		if len(children) == 1:
+			if side.parent() is None:
+				graph.validate()
+				print 'Root bridge'
+				segment = graph.newSegment()
+				graph.createBranch(side.segment, segment)
+				graph.deleteBranch(side.segment, children[0].segment)
+				graph.createBranch(segment, children[0].segment)
+
+				segment2 = graph.newSegment()	
+				graph.createBranch(side.bond.segment, segment2)
+				graph.createBond(segment.getSide(side.left), segment2.getSide(side.bond.left))
+				graph.validate()
+			else:
+				print 'Ignoring badness due to unattached junctions below'
 			return
-		elif len(children) == 1 and children[0].bond is None and random.random() < 0.5:
+		children.pop(random.randrange(len(children)))
+		if len(children) == 1 and children[0].bond is None and random.random() < 0.5:
 			print 'Creating bridge bond on child'
 			bridge = children[0]
 		else:
@@ -138,7 +147,7 @@ def applyCase2(args):
 			graph.createBranch(side.segment, bridgeS)
 			bridge = bridgeS.getSide(side.left)
 
-		stepChildren = filter(lambda X: graph.eventGraph.testConstraint(graph.sideThread(bridge), graph.sideThread(X)), side.bond.children())
+		stepChildren = filter(lambda X: (X.bond is not None or len(X.liftedPartners()) > 0) and graph.eventGraph.testConstraint(graph.sideThread(bridge), graph.sideThread(X)), side.bond.children())
 		if len(stepChildren) > 0:
 			stepChild = random.choice(stepChildren)
 			if graph.sideThread(stepChild) is graph.sideThread(bridge):
@@ -149,11 +158,11 @@ def applyCase2(args):
 				else:
 					bridgePartnerS = stepChild.segment
 			else:
-				print 'Interpolating bridge'
 				bridgePartnerS = graph.newSegment()
 				graph.deleteBranch(side.bond.segment, stepChild.segment)
 				graph.createBranch(bridgePartnerS, stepChild.segment) 
 				graph.createBranch(side.segment, bridgePartnerS)
+				print 'Interpolating bridge', id(bridgePartnerS)
 		else:
 			print 'Necessary bridge stub'
 			bridgePartnerS = graph.newSegment()
