@@ -103,9 +103,14 @@ def applyCase2(args):
 				while not graph.eventGraph.testConstraint(graph.sideThread(ptr), graph.sideThread(side)):
 					ptr = ptr.parent()
 				# Bridge
-				segment = graph.newSegment()
-				graph.createBranch(ptr.segment, segment)
-				graph.createBond(side, segment.getSide(target.left))
+				if graph.sideThread(ptr) is graph.sideThread(side):
+					graph.createBond(side, ptr)
+					print 'Found sibling on lifting path', id(ptr)
+				else:
+					segment = graph.newSegment()
+					print 'Interpolated sibling on lifting path', id(segment)
+					graph.createBranch(ptr.segment, segment)
+					graph.createBond(side, segment.getSide(target.left))
 
 			else:
 				# If target is definitely younger than current

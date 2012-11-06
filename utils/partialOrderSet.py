@@ -134,7 +134,8 @@ class PartialOrderSet(set):
 		"""
 		assert ancestral in self
 		assert derived in self
-		assert ancestral is not derived
+		if ancestral is derived:
+			raise RuntimeError
 
 		lower = self.depth[derived]
 		upper = self.depth[ancestral]
@@ -144,7 +145,6 @@ class PartialOrderSet(set):
 			if RForward is None:
 				# Oops, just created a self loop
 				raise RuntimeError
-				assert False
 			else:
 				RBackward = self._dfsBackward(ancestral, lower)
 				self._reassign(RForward, RBackward)
