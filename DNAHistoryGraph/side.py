@@ -90,13 +90,13 @@ class Side(object):
 			liftingPartners = sum(childLiftedBonds, [])
 			if sum(len(X) > 0 for X in childLiftedBonds) > 1:
 				# Unattached bond junction!!
-				return [(X[0], True) for X in liftingPartners]
+				return [(X[0], True, X[2]) for X in liftingPartners]
 			else:
 				# Unattached bond on linear lifting path 
 				return liftingPartners
 		else:
 			target = self.bond.ancestor()
-			return [(target, target is not self.ancestor().bond or _junctionsOnTheWay(target))]
+			return [(target, target is not self.ancestor().bond or _junctionsOnTheWay(target), self)]
 
 	def liftedPartners(self):
 		""" Returns list of tuples (lifted edge partner of self, is non trivial) """

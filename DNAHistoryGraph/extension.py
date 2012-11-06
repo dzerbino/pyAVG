@@ -8,20 +8,12 @@ class GraphExtension(DNAHistoryGraph):
 	def __init__(self, reduction):
 		duplicates = dict(map(lambda X: (X, copy.copy(X)), reduction.segments))
 		for segment in reduction.segments:
-			if segment.left.bond is not None:
-				if segment.left.bond.left:
-					duplicates[segment].left.createBond(duplicates[segment.left.bond.segment].left)
-				else:
-					duplicates[segment].left.createBond(duplicates[segment.left.bond.segment].right)
-			if segment.right.bond is not None:
-				if segment.right.bond.left:
-					duplicates[segment].right.createBond(duplicates[segment.right.bond.segment].left)
-				else:
-					duplicates[segment].right.createBond(duplicates[segment.right.bond.segment].right)
-
-			if segment.parent is not None:
-				duplicates[segment].parent = duplicates[segment.parent]
-			duplicates[segment].children = set(duplicates[X] for X in segment.children)
+			if segment.left.bond is not None and duplicates[segment].left.bond is None:
+				duplicates[segment].left.createBond(duplicates[segment.left.bond.segment].getSide(segment.left.bond.left))
+			if segment.right.bond is not None and duplicates[segment].right.bond is None:
+				duplicates[segment].right.createBond(duplicates[segment.right.bond.segment].getSide(segment.right.bond.left))
+			if segment.parent is not None and duplicates[segment].parent is None:
+				duplicates[segment.parent].createBranch(duplicates[segment])
 		super(GraphExtension, self).__init__(duplicates)
 		self.irreducibleSegments = frozenset(self.segments) 
 		self.irreducibleSides = frozenset(filter(lambda X: X.bond is not None, self.sides()))
@@ -135,18 +127,18 @@ def isGReducibleBond(side, graph):
 
 	if len(liftedA) == 0 and len(liftedB) == 0:
 		# Leaf
-		print 'LEAFL', id(side)
+		print 'LEAFL', id(side.segment)
 		return True
 	elif (len(liftedA) > 1 or len(liftedB) > 1):
 		# Junction or complex
 		return False
 	elif len(liftedA) == 1 and len(liftedB) == 1 and not liftedA[0][1] and not liftedB[0][1]:
 		# Redundant
-		print 'REDUNDANT', id(side)
+		print 'REDUNDANT', id(side.segment)
 		return True
 	elif len(liftedA) == 1 and len(liftedB) == 1 and isNonTrivialLiftingBond(side):
 		# Complicating
-		print 'COMPLICATING', id(side)
+		print 'COMPLICATING', id(side.segment)
 		return True
 	else:
 		# Bridge
@@ -172,9 +164,11 @@ def isGReducibleSegment(segment, graph):
 		return False
 	elif segment.parent is None and len(segment.children) == 0 and segment.left.bond is None and segment.right.bond is None:
 		# Isolated segment
+		print 'ISOLATED'
 		return True
 	elif segment.label is None and segment.left.bond is None and segment.right.bond is None and len(segment.children) <= 1:
 		# Free tailed branch with at most one child or free headed branch
+		print 'FREE TAILED BRANCH W/ > 1 CHILD OR FREE HEADED BRANCH'
 		return True
 	else:
 		# None of the above
@@ -195,7 +189,7 @@ def removeGReducibleSegment(segment, graph):
 		graph.eventGraph.remove(graph.segmentThreads[segment])
 		del graph.segmentThreads[segment]
 		graph.segments.remove(segment)
-		print 'G-Reducible segment REMOVED'
+		print 'G-Reducible segment REMOVED', id(segment)
 		return 1
 	else:
 		return 0
@@ -215,6 +209,7 @@ def hasNoGReduciblePingPongs(graph):
 
 def removePingPong(side, graph):
 	if isPing(side, graph):
+		print 'Ping', id(side.segment)
 		exPartner = side.bond
 		graph.deleteBond(side)
 		ancestor = exPartner.ancestor()
@@ -223,11 +218,11 @@ def removePingPong(side, graph):
 			new = graph.newSegment()
 			graph.createBranch(ancestor.bond.segment, new)
 			graph.createBond(exPartner, new.getSide(ancestor.bond.left))
-			print 'Ping Pong corrected w/ pull down'
+			print 'Ping Pong corrected w/ pull down', id(side.segment)
 		else:
 			# Stub
 			graph.createBond(exPartner, graph.newSegment().left)
-			print 'Ping Pong corrected w/ pull stub'
+			print 'Ping Pong corrected w/ pull stub', id(side.segment)
 		return 1
 	return 0
 

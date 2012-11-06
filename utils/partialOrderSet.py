@@ -82,8 +82,6 @@ class PartialOrderSet(set):
 		self.depth = dict((X, self._correctedDepth(X, depth)) for X in self.depth)
 		super(PartialOrderSet, self).remove(elem)
 	
-		return elem
-
 	####################################################
 	## Adding a constraint
 	####################################################
@@ -113,8 +111,9 @@ class PartialOrderSet(set):
 					RBackward += recursion
 		return RBackward
 	
-	def _sortF(self, list):
-		return sorted(list, key = lambda X: self.depth[X])
+	def _sortF(self, vals):
+		# The use of set() to remove duplicates becomes crucial when interleaving the two lists in _reassign
+		return sorted(list(set(vals)), key = lambda X: self.depth[X])
 
 	def _reassign(self, RForward, RBackward):
 		Lnodes = self._sortF(RBackward) + self._sortF(RForward)
@@ -135,6 +134,7 @@ class PartialOrderSet(set):
 		"""
 		assert ancestral in self
 		assert derived in self
+		assert ancestral is not derived
 
 		lower = self.depth[derived]
 		upper = self.depth[ancestral]
@@ -172,7 +172,7 @@ class PartialOrderSet(set):
 			for Y in self.children[X]:
 				assert Y in self
 				assert X in self.parents[Y]
-				assert self.depth[Y] > self.depth[X]
+				assert self.depth[Y] > self.depth[X], self.dot()
 		return True
 
 	def _validateParents(self):
@@ -192,7 +192,7 @@ class PartialOrderSet(set):
 	def _validateDepth(self):
 		assert all(X in self for X in self.depth)
 		assert len(self) == len(self.depth)
-		assert len(set(self.depth.values())) == len(self.depth.values()), str(sorted(self.depth.values()))
+		assert len(set(self.depth.values())) == len(self.depth.values()), str(sorted(self.depth.values())) + "\n" + self.dot()
 		return True
 
 	def validate(self):

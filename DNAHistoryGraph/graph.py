@@ -87,8 +87,7 @@ class DNAHistoryGraph(object):
 
 	def createBond(self, sideA, sideB):
 		""" Creates bond between two sides and throws RuntimeError if cycle created """
-		if sideA.bond is not None and sideA.bond is not sideB:
-			self.deleteBond(sideA)
+		assert sideA.bond is None and sideB.bond is None
 		sideA.createBond(sideB)
 		if self.segmentThreads[sideB.segment] is not self.segmentThreads[sideA.segment]:
 			oldThread = self.segmentThreads[sideA.segment]
@@ -102,6 +101,7 @@ class DNAHistoryGraph(object):
 			try:
 			    for traversal in newThread:
 				    self.segmentThreads[traversal.segment] = newThread
+			    for traversal in newThread:
 				    if traversal.segment.parent is not None:
 					    self.eventGraph.addConstraint(self.segmentThreads[traversal.segment.parent], newThread)
 				    for child in traversal.segment.children:
@@ -118,7 +118,7 @@ class DNAHistoryGraph(object):
 		sideA.deleteBond()
 		if sideB is not None:
 			thread = sideA.segment.thread()
-			if sideB not in thread:
+			if sideB.segment not in [traversal.segment for traversal in thread]:
 				oldThread = self.sideThread(sideA)
 				thread2 = sideB.segment.thread()
 

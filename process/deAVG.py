@@ -28,7 +28,8 @@ def deAVG(avg, removalDensity=.5, labelRemovalDensity=0, bondRemovalDensity=0):
 	return graph
 
 def test_main():
-	deAVG(RandomHistory(5, 5).avg()).validate()
+	for i in range(1000):
+		deAVG(RandomHistory(5, 5).avg()).validate()
 
 if __name__ == "__main__":
 	test_main()
