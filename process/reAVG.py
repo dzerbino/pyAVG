@@ -36,7 +36,7 @@ def reAVG(graph):
 
 def test_main():
 	last = time.time()
-	for i in range(1000):
+	for i in range(100):
 		print 'EXPERIMENT', i, time.time() - last
 		last = time.time()
 		history = RandomHistory(5, 5)

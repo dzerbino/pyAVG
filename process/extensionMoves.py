@@ -69,13 +69,11 @@ def applyCase2(args):
 		ancestor = side.ancestor()
 		if ancestor is not None and ancestor.bond is not None:
 			print 'Pulling down junction bond'
-			# Pulling down
 			segment = graph.newSegment()
 			graph.createBranch(ancestor.bond.segment, segment)
 			graph.createBond(side, segment.getSide(ancestor.bond.left))
 		else:	
 			print 'Pulling up junction bond'
-			# Pulling up
 			liftedEdges = side.liftedPartners()
 			target = getMajority(X[0] for X in liftedEdges)
 
