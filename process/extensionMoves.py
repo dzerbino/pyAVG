@@ -29,6 +29,50 @@ def getMajority(list):
 ## Adding necessary labels
 ###############################################
 
+####Make G-bounded AVG from G-bounded DNA history graph
+
+def makeGBoundedAVG(gP):
+	while gP.ambiguity() > 0:
+		#Pick an ambiguous segment or side
+		x = pickRandomAmbiguousElement(gP)
+		if x.__class__ is segment:
+			makeRandomGBoundedExtensionOfLabelModule(x)
+		else:
+			assert x.__class__ is side
+			makeRandomGBoundedExtensionOfModule(x)
+		
+def makeRandomGBoundedExtensionOfLabelModule(x):	
+	assert len(x.nonTrivialLiftedLabels()) > 1
+	if x.label() != None: #This is not a free root
+		if (x.label() != None and random.random() > 0.5) or not makeRandomLabelJunction(x):
+			makeRandomNecessaryBridge(x)
+	
+def makeRandomNecessaryBridge(x):
+	assert x.label() != None
+	assert len(x.nonTrivialLiftedLabels()) > 1
+	y = random.choice(x.nonTrivialLiftedLabels())
+	#Get ancestors of y which are descendants of x and that if labeled would recieve one lifted label.
+	z = y
+	X = [ z ]
+	while len(z.ancestor().liftedLabels()) == 1:
+		X.append(z.ancestor())
+		z = z.ancestor()
+	z = random.choice(fn(x, y))
+	if z == y or random.random() > 0.5:
+		z = interpolateNodeOnParentBranch(z)
+	z.copyLabel(y.label())
+	
+def makeRandomLabelJunction(x):
+	pass
+
+	
+def interpolateNodeOnParentBranch(z):
+				
+def makeRandomGBoundedExtensionOfModule(x):
+		
+			
+			
+
 def listCase1(graph):
 	return [ExtensionMove(applyCase1, (segment, graph)) for segment in filter(lambda X: X.substitutionAmbiguity() > 0, graph.segments)]
 
