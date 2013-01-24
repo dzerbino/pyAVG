@@ -4,6 +4,7 @@ import side
 import thread
 from traversal import Traversal
 from label import Label
+from collections import Counter
 
 class Segment(object):
 	""" DNA history segment """
@@ -16,8 +17,12 @@ class Segment(object):
 			self.label = Label(sequence)
 		else:
 			self.label = None
-		self.parent = parent
-		self.children = set(children)
+		self.children = set()
+		for child in children:
+			self.createBranch(child)
+		self.parent = None
+		if parent != None:
+			parent.createBranch(self)
 		self.right = None
 		self.left = side.Side(self, True)
 		self.right = side.Side(self, False)
@@ -47,16 +52,15 @@ class Segment(object):
 		""" Removes branch between segments """
 		self.children.remove(other)
 		other.parent = None
+		
+	def deleteLabel(self):
+		self.label = None
 
 	def getSide(self, left):
 		if left:
 			return self.left
 		else:
 			return self.right
-
-	##########################
-	## Lifted labels
-	##########################
 
 	def disconnect(self):
 		"""Destroy pointers to this segment """
@@ -67,6 +71,12 @@ class Segment(object):
 		if self.parent is not None:
 			self.parent.children |= self.children
 			self.parent.children.remove(self)
+		self.children = set()
+		self.parent = None
+			
+	##########################
+	## Lifted labels
+	##########################
 
 	def _ancestor2(self):
 		if self.label is not None or self.parent is None:
@@ -80,36 +90,31 @@ class Segment(object):
 		else:
 			return self.parent._ancestor2()
 
-	def _liftedLabels2(self):
+	def _liftedLabels2(self, includeUnlabeledNodes=False):
 		if self.label is None:
-			liftingLabels = sum([X._liftedLabels2() for X in self.children], [])
-			if len(liftingLabels) < 2:
-				return liftingLabels
+			if includeUnlabeledNodes:
+				return self.liftedLabels(includeUnlabeledNodes) | set([self])
 			else:
-				return [(X[0], True) for X in liftingLabels]
+				return self.liftedLabels(includeUnlabeledNodes)
 		else:
-			return [(self.label, self.label != self.ancestor().label)]
+			return set([ self ])
 	
-	def liftedLabels(self):
-		""" Returns tuple of lifted labels (X, Y), where X is lifted label, and Y determines whether X is non-trivial """
-		return sum([X._liftedLabels2() for X in self.children], [])
+	def liftedLabels(self, includeUnlabeledNodes=False):
+		""" Returns set of labeled segments whose lifting ancestor is self"""
+		if len(self.children) == 0:
+			return set()
+		return set(reduce(lambda x, y : x | y, [x._liftedLabels2(includeUnlabeledNodes) for x in self.children]))
 	
-	def isJunction(self):
-		return sum(X._liftedLabels2() > 0 for X in self.children) > 1
-
 	def nonTrivialLiftedLabels(self):
-		if self.label is not None:
-			return [X[0] for X in self.liftedLabels() if X[1]]
-		else:
-			return [X[0] for X in self.liftedLabels()]
+		return set([ i for i in self.liftedLabels() if i.label != self.label ])
 
 	##########################
 	## Ambiguity
 	##########################
-	def coalescenceAmbiguity(self):
-		return max(0, len(self.children) - 2)
 
 	def substitutionAmbiguity(self):
+		if self.label == None and self.parent != None:
+			return 0
 		return max(0, len(self.nonTrivialLiftedLabels()) - 1)
 
 	def rearrangementAmbiguity(self):
@@ -118,11 +123,16 @@ class Segment(object):
 	##########################
 	## Cost
 	##########################
-	def substitutionCost(self, lowerBound = True):
-		if lowerBound:
-			return len(set(self.nonTrivialLiftedLabels()))
-		else:
-			return len(self.nonTrivialLiftedLabels())
+	
+	def lowerBoundSubstitutionCost(self):
+		return max(0, len(set([ x.label for x in self.nonTrivialLiftedLabels() ])) - (self.label == None))
+	
+	def upperBoundSubstitutionCost(self):
+		nTLabels = self.nonTrivialLiftedLabels()
+		i = 0
+		if self.label == None:
+			i = Counter([ x.label for x in nTLabels ]).most_common()[0][1]
+		return len(nTLabels) - i
 
 	##########################
 	## Threads
@@ -175,5 +185,5 @@ class Segment(object):
 		assert all(self is child.parent for child in self.children)
 		assert self.left.validate()
 		assert self.right.validate()
-		assert self.substitutionCost() <= self.substitutionCost(False)
+		assert self.lowerBoundSubstitutionCost() <= self.upperBoundSubstitutionCost(False)
 		return True

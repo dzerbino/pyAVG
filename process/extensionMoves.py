@@ -31,71 +31,26 @@ def getMajority(list):
 
 ####Make G-bounded AVG from G-bounded DNA history graph
 
-def makeGBoundedAVG(gP):
-	while gP.ambiguity() > 0:
-		#Pick an ambiguous segment or side
-		x = pickRandomAmbiguousElement(gP)
-		if x.__class__ is segment:
-			makeRandomGBoundedExtensionOfLabelModule(x)
-		else:
-			assert x.__class__ is side
-			makeRandomGBoundedExtensionOfModule(x)
-		
-def makeRandomGBoundedExtensionOfLabelModule(x):	
-	assert len(x.nonTrivialLiftedLabels()) > 1
-	if x.label() != None: #This is not a free root
-		if (x.label() != None and random.random() > 0.5) or not makeRandomLabelJunction(x):
-			makeRandomNecessaryBridge(x)
-	
-def makeRandomNecessaryBridge(x):
-	assert x.label() != None
-	assert len(x.nonTrivialLiftedLabels()) > 1
-	y = random.choice(x.nonTrivialLiftedLabels())
-	#Get ancestors of y which are descendants of x and that if labeled would recieve one lifted label.
-	z = y
-	X = [ z ]
-	while len(z.ancestor().liftedLabels()) == 1:
-		X.append(z.ancestor())
-		z = z.ancestor()
-	z = random.choice(fn(x, y))
-	if z == y or random.random() > 0.5:
-		z = interpolateNodeOnParentBranch(z)
-	z.copyLabel(y.label())
-	
-def makeRandomLabelJunction(x):
-	pass
-
-	
-def interpolateNodeOnParentBranch(z):
-				
-def makeRandomGBoundedExtensionOfModule(x):
-		
-			
-			
-
 def listCase1(graph):
 	return [ExtensionMove(applyCase1, (segment, graph)) for segment in filter(lambda X: X.substitutionAmbiguity() > 0, graph.segments)]
 
 def applyCase1(args):
 	segment, graph = args
+	assert segment.substitutionAmbiguity() > 1
 	if segment.label is None:
 		# In an ideal world Fitch parsimony would be a nice touch...
 		print 'Adding junction label'
-		segment.label = Label(random.choice(['A','T'])) 
+		segment.setLabel(random.choice(['A','T']))
 	else:
-		children = filter(lambda X: X.label is not None or len(X.liftedLabels()) > 0, segment.children)
-		children.pop(random.randrange(len(children)))
-		if len(children) == 1 and children[0].label is None and random.random() < 0.5:
-			print 'Labelling child'
-			children[0].label = Label(segment.label)
+		x = random.choice(segment.liftedLabels(includeUnlabeledNodes=True))
+		if x.label != None or random.random() > 0.5:
+			x = graph.interpolateNode(x)
+		if x.liftedLabels() > 1:
+			print 'Adding junction label'
+			x.setLabel(random.choice(['A','T'])) #Its a junction we can choose anything we like
 		else:
-			print 'Adding label bridge'
-			bridge = graph.newSegment()
-			for child in children:
-				graph.deleteBranch(segment, child)
-				graph.createBranch(bridge, child) 
-			graph.createBranch(segment, bridge)
-			bridge.label = Label(segment.label)
+			print 'Adding necessary bridge label'
+			x.setLabel(str(list(x.liftedLabels())[0]))
 
 ###############################################
 ## Case 2

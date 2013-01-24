@@ -20,4 +20,4 @@ class Label(object):
 			return cmp(self.sequence, other.sequence)
 
 	def __hash__(self):
-		return id(self)
+		return self.sequence.__hash__()

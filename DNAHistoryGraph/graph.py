@@ -49,16 +49,6 @@ class DNAHistoryGraph(object):
 		self.segmentThreads[segment] = T
 		return segment
 
-	def sideThread(self, side):
-		return self.segmentThreads[side.segment]
-
-	def interpolateSegment(self, parent, child):
-		segment = self.newSegment()
-		self.deleteBranch(parent, child)
-		self.createBranch(parent, segment)
-		self.createBranch(segment, parent)
-		return segment
-
 	##################################
 	## Online acyclicity verification
 	##################################
@@ -111,6 +101,9 @@ class DNAHistoryGraph(object):
 				print self.eventGraph.dot()
 				print id(sideA.segment), id(sideB.segment)
 				assert False
+				
+	def sideThread(self, side):
+		return self.segmentThreads[side.segment]
 		
 	def deleteBond(self, sideA):
 		""" Deletes bond between two sides and updates event graph """
@@ -141,15 +134,36 @@ class DNAHistoryGraph(object):
 
 	def areSiblings(self, threadA, threadB):
 		return self.eventGraph.testConstraint(threadA, threadB) and self.eventGraph.testConstraint(threadB, threadA) 
+	
+	##################################
+	## Convenient extension operations
+	##################################
+	
+	def interpolateSegment(self, child):
+		newSegment = self.newSegment()
+		if child.parent != None:
+			parent = child.parent
+			self.deleteBranch(parent, child)
+			self.createBranch(parent, newSegment)
+			self.createBranch(newSegment, child)
+		else:
+			self.createBranch(newSegment, child)
+		return newSegment
+	
+	def pullDown(self, parent, subsetOfChildren):
+		assert set(subsetOfChildren) <= parent.children
+		newSegment = self.newSegment()
+		self.createBranch(parent, newSegment)
+		for child in subsetOfChildren:
+			self.deleteBranch(parent, child)
+			self.createBranch(newSegment, child)
+		return newSegment
 
 	##################################
 	## Ambiguity
 	##################################
 	def substitutionAmbiguity(self):
 		return sum(segment.substitutionAmbiguity() for segment in self.segments)
-
-	def coalescenceAmbiguity(self):
-		return sum(segment.coalescenceAmbiguity() for segment in self.segments)
 
 	def rearrangementAmbiguity(self):
 		return sum(segment.rearrangementAmbiguity() for segment in self.segments)
