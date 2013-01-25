@@ -41,8 +41,8 @@ class DNAHistoryGraph(object):
 			duplicates[segment].children = set(duplicates[X] for X in segment.children)
 		return DNAHistoryGraph(duplicates.values())
 
-	def newSegment(self):
-		segment = Segment()
+	def newSegment(self, sequence=None):
+		segment = Segment(sequence=sequence)
 		self.segments.append(segment)
 		T = thread.Thread([Traversal(segment, True)])
 		self.eventGraph.add(T)

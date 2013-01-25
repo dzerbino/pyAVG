@@ -45,6 +45,7 @@ class Segment(object):
 
 	def createBranch(self, other):
 		""" Creates branch between segments """
+		assert other
 		self.children.add(other)
 		other.parent = self
 
@@ -53,7 +54,14 @@ class Segment(object):
 		self.children.remove(other)
 		other.parent = None
 		
+	def setLabel(self, sequence):
+		"""Safely set the label of a segment. #put in for future in which we move to storing lifted labels
+		"""
+		self.label = Label(sequence)
+		
 	def deleteLabel(self):
+		"""Safely delete the label of a segment. #put in for future in which we move to storing lifted labels
+		"""
 		self.label = None
 
 	def getSide(self, left):
@@ -90,20 +98,17 @@ class Segment(object):
 		else:
 			return self.parent._ancestor2()
 
-	def _liftedLabels2(self, includeUnlabeledNodes=False):
+	def _liftedLabels2(self,):
 		if self.label is None:
-			if includeUnlabeledNodes:
-				return self.liftedLabels(includeUnlabeledNodes) | set([self])
-			else:
-				return self.liftedLabels(includeUnlabeledNodes)
+			return self.liftedLabels()
 		else:
 			return set([ self ])
 	
-	def liftedLabels(self, includeUnlabeledNodes=False):
+	def liftedLabels(self):
 		""" Returns set of labeled segments whose lifting ancestor is self"""
 		if len(self.children) == 0:
 			return set()
-		return set(reduce(lambda x, y : x | y, [x._liftedLabels2(includeUnlabeledNodes) for x in self.children]))
+		return set(reduce(lambda x, y : x | y, [x._liftedLabels2() for x in self.children]))
 	
 	def nonTrivialLiftedLabels(self):
 		return set([ i for i in self.liftedLabels() if i.label != self.label ])

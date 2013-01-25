@@ -34,23 +34,43 @@ def getMajority(list):
 def listCase1(graph):
 	return [ExtensionMove(applyCase1, (segment, graph)) for segment in filter(lambda X: X.substitutionAmbiguity() > 0, graph.segments)]
 
+def getFirstUnlabeledJunctionSegmentInFace(segment):
+	if segment.label == None:
+		if len(segment.liftedLabels()) > 1:
+			return segment
+	else:
+		for child in segment.children:
+			x = getFirstUnlabeledJunctionSegmentInFace(child)
+			if x != None:
+				return x
+	return None
+
+def getFirstLabeledSegment(segment):
+	if segment.label != None:
+		return segment
+	for child in segment.children:
+		x = getFirstLabeledSegment(child)
+		if x != None:
+			return x
+	return None
+
 def applyCase1(args):
 	segment, graph = args
-	assert segment.substitutionAmbiguity() > 1
-	if segment.label is None:
-		# In an ideal world Fitch parsimony would be a nice touch...
+	assert segment.substitutionAmbiguity() > 0
+	x = getFirstUnlabeledJunctionSegmentInFace(segment)
+	if x != None:
 		print 'Adding junction label'
-		segment.setLabel(random.choice(['A','T']))
+		x.setLabel(str(random.choice(list(x.liftedLabels()))))
 	else:
-		x = random.choice(segment.liftedLabels(includeUnlabeledNodes=True))
-		if x.label != None or random.random() > 0.5:
-			x = graph.interpolateNode(x)
-		if x.liftedLabels() > 1:
-			print 'Adding junction label'
-			x.setLabel(random.choice(['A','T'])) #Its a junction we can choose anything we like
+		assert len(segment.children) > 1
+		for child in segment.children:
+			x = getFirstLabeledSegment(child)
+			if x != None and x.label != segment.label: 
+				print 'Adding necessary bridge label'
+				graph.interpolateSegment(x).setLabel(str(segment.label))
+				break
 		else:
-			print 'Adding necessary bridge label'
-			x.setLabel(str(list(x.liftedLabels())[0]))
+			raise RuntimeError("Did not perform extension for segment with substitution ambiguity")
 
 ###############################################
 ## Case 2
@@ -59,6 +79,34 @@ def applyCase1(args):
 
 def listCase2(graph):
 	return [ExtensionMove(applyCase2, (side, graph)) for side in filter(lambda X: X.rearrangementAmbiguity() > 0, graph.sides())]
+
+def getFirstUnattachedJunctionSideInFace(module):
+	pass
+
+def getFirstAttachedSide(side):
+	pass
+
+def getPartnerJunctions(side):
+	pass
+
+def applyCase2(args):
+	module, graph = args
+	assert module.rearrangementAmbiguity() > 0
+	x = getFirstUnattachedJunctionSideInFace(module)
+	if x != None:
+		print 'Attaching junction side'
+		graph.createBond(x, random.choice(getPartnerJunctions(x)))
+		#Remove any ping-pong bonds created..
+	else:
+		for side in module.sides:
+			for child in side.children:
+				x = getFirstAttachedSide(child)
+				if x != None and x.bond.ancestor() != side.bond: 
+					print 'Adding necessary bridge bond'
+					graph.createBond(graph.interpolateSegment(x).getSide(x.left), )
+					break
+		else:
+			raise RuntimeError("Did not perform extension for module with rearrangement ambiguity")
 
 def applyCase2(args):
 	side, graph = args

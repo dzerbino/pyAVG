@@ -6,6 +6,7 @@ class DNAHistoryGraphTest(unittest.TestCase):
     """
     
     def setUp(self):
+        unittest.TestCase.setUp(self)
         self.g = DNAHistoryGraph()
         self.s1 = self.g.newSegment()
         self.s2 = self.g.newSegment()
@@ -14,7 +15,6 @@ class DNAHistoryGraphTest(unittest.TestCase):
         self.g.createBranch(self.s1, self.s2)
         self.g.createBranch(self.s1, self.s3)
         self.g.createBranch(self.s1, self.s4)
-        unittest.TestCase.setUp(self)
     
     def tearDown(self):
         unittest.TestCase.tearDown(self)
