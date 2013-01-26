@@ -34,48 +34,62 @@ def getMajority(list):
 def listCase1(graph):
 	return [ExtensionMove(applyCase1, (segment, graph)) for segment in filter(lambda X: X.substitutionAmbiguity() > 0, graph.segments)]
 
-def getFirstUnlabeledJunctionSegmentInFace(segment):
-	if segment.label == None:
-		if len(segment.liftedLabels()) > 1:
-			return segment
-	else:
-		for child in segment.children:
-			x = getFirstUnlabeledJunctionSegmentInFace(child)
-			if x != None:
-				return x
-	return None
-
-def getFirstLabeledSegment(segment):
-	if segment.label != None:
-		return segment
-	for child in segment.children:
-		x = getFirstLabeledSegment(child)
-		if x != None:
-			return x
-	return None
-
 def applyCase1(args):
-	segment, graph = args
-	assert segment.substitutionAmbiguity() > 0
-	x = getFirstUnlabeledJunctionSegmentInFace(segment)
-	if x != None:
-		print 'Adding junction label'
-		x.setLabel(str(random.choice(list(x.liftedLabels()))))
-	else:
-		assert len(segment.children) > 1
-		for child in segment.children:
-			x = getFirstLabeledSegment(child)
-			if x != None and x.label != segment.label: 
+	rootSegment, graph = args
+	assert rootSegment.substitutionAmbiguity() > 0
+	bottomSegment = random.choice(list(rootSegment.nonTrivialLiftedLabels()))
+	#Get segments from chosen segment creating non-trivial label to root segment
+	l = [ bottomSegment ]
+	x = bottomSegment
+	while x != rootSegment:
+		x = x.parent
+		l.append(x)
+	#Now walk this list root and randomly label the first eligible segment
+	while len(l) > 0:
+		x = l.pop()
+		if rootSegment.label == None or x == bottomSegment or len(segment.liftedLabels()) - len(x.liftedLabels()) > 0:
+			if x.label != None:
 				print 'Adding necessary bridge label'
-				graph.interpolateSegment(x).setLabel(str(segment.label))
-				break
-		else:
-			raise RuntimeError("Did not perform extension for segment with substitution ambiguity")
+				assert x == rootSegment
+				graph.interpolateSegment(x).setLabel(str(rootSegment.label))
+			elif len(x.liftedLabels()) == 1:
+				print 'Adding necessary bridge label'
+				x.setLabel(str(rootSegment.label))
+			else:
+				print 'Adding junction label'
+				x.setLabel(str(random.choice(list(x.liftedLabels()) + [ rootSegment ]).label))
+			break
 
 ###############################################
 ## Case 2
 ## Adding necessary bonds
 ###############################################
+
+def createNecessaryBridge(rootSide, sideToAttach):
+	pass
+
+def applyCase2(args):
+	rootSide, graph = args
+	assert rootSide.substitutionAmbiguity() > 0
+	bottomSide = random.choice(list(rootSide.nonTrivialLiftedBonds()))
+	#Get segments from chosen segment creating non-trivial label to root segment
+	l = [ bottomSide ]
+	x = bottomSide
+	while x != rootSide:
+		x = x.parent()
+		l.append(x)
+	#Now walk this list root and randomly label the first eligible segment
+	while len(l) > 0:
+		x = l.pop()
+		if x.isJunction() > 1:
+			print 'Adding junction label'
+			pass
+		elif rootSide.bond != None: 
+			print 'Adding necessary bridge bond'
+			if x.bond != None:
+				assert x == rootSide
+				x = graph.interpolateSegment(x.segment).getSide(x.left)
+			createNecessaryBridge(rootSide, x)
 
 def listCase2(graph):
 	return [ExtensionMove(applyCase2, (side, graph)) for side in filter(lambda X: X.rearrangementAmbiguity() > 0, graph.sides())]
