@@ -44,13 +44,13 @@ def applyCase1(args):
 	while x != rootSegment:
 		x = x.parent
 		l.append(x)
-	#Now walk this list root and randomly label the first eligible segment
+	#Now walk this list from the root and randomly label the first eligible segment
 	while len(l) > 0:
 		x = l.pop()
-		if rootSegment.label == None or x == bottomSegment or len(segment.liftedLabels()) - len(x.liftedLabels()) > 0:
+		if rootSegment.label == None or x == bottomSegment or len(rootSegment.liftedLabels()) - len(x.liftedLabels()) > 0:
 			if x.label != None:
+				assert x == bottomSegment
 				print 'Adding necessary bridge label'
-				assert x == rootSegment
 				graph.interpolateSegment(x).setLabel(str(rootSegment.label))
 			elif len(x.liftedLabels()) == 1:
 				print 'Adding necessary bridge label'
@@ -70,8 +70,9 @@ def createNecessaryBridge(rootSide, sideToAttach):
 
 def applyCase2(args):
 	rootSide, graph = args
-	assert rootSide.substitutionAmbiguity() > 0
+	assert rootSide.rearrangementAmbiguity() > 0
 	bottomSide = random.choice(list(rootSide.nonTrivialLiftedBonds()))
+	assert bottomSide != rootSide
 	#Get segments from chosen segment creating non-trivial label to root segment
 	l = [ bottomSide ]
 	x = bottomSide
@@ -81,14 +82,32 @@ def applyCase2(args):
 	#Now walk this list root and randomly label the first eligible segment
 	while len(l) > 0:
 		x = l.pop()
-		if x.isJunction() > 1:
-			print 'Adding junction label'
-			pass
-		elif rootSide.bond != None: 
+		if x.bond != None:
+			assert x == bottomSide
+			assert rootSide.bond != None
 			print 'Adding necessary bridge bond'
-			if x.bond != None:
-				assert x == rootSide
-				x = graph.interpolateSegment(x.segment).getSide(x.left)
+			createNecessaryBridge(rootSide, graph.interpolateSegment(x.segment).getSide(x.left))
+		elif len(x.liftedLabels()) > 1:
+			print 'Adding junction label'
+			l2 = []
+			for y in x.liftedLabels():
+				z = getConcomittantUnattachedSegment(y.bond, x)
+				if z != None:
+					l2.append(z)
+			i = random.choice(xrange(len(l2) + 1))
+			if i < len(l2):
+				if l2[i].bond == None:
+					x.createBond(x, l2[i])
+				else:
+					x.createBond(x, graph.interpolateSegment(l2[i].segment).getSide(l2[i].left))
+			else:
+				#We can either create a bridge like bond, or
+				#we can attach to another segment that has non-trivial lifts
+				#or to a segment that has no
+				createNecessaryBridge(rootSide, x)
+		else:
+			assert x != rootSide
+			print 'Adding necessary bridge bond'
 			createNecessaryBridge(rootSide, x)
 
 def listCase2(graph):
