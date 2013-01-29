@@ -164,6 +164,35 @@ class PartialOrderSet(set):
 			self.roots.add(child)
 
 	################################################
+	## Checking ancestry
+	################################################
+	def _ancestors(self, elem):
+		# Yes, I know, recursion would be nicer, but Python is shite with deep recursions
+		todo = [elem]
+		ancestors = list()
+		while len(todo) > 0:
+			elem = todo.pop()
+			if elem not in ancestors:
+				ancestors.extend(self.parents[elem])
+				todo.extend(self.parents[elem])
+		return ancestors
+
+	def _isAncestor(self, parent, child):
+		if self.depth[parent] >= self.depth[child]:
+			return False
+		else:
+			return parent in self._ancestors(child)
+
+	def compare(self, elemA, elemB):
+		""" Return -1 if elemA is ancestor of elemB, return 1 is elemA is descendant of elemB else return 0 """
+		if self._isAncestor(elemA, elemB):
+			return -1
+		if self._isAncestor(elemB, elemA):
+			return 1
+		else:
+			return 0
+
+	################################################
 	## Validate
 	################################################
 	def _validateChildren(self):
@@ -224,13 +253,21 @@ def test_main():
 	pos.add(2)
 	pos.add(3)
 	pos.add(1)
+	pos.add(4)
+	pos.add(5)
 	pos.addConstraint(1,2)
 	pos.addConstraint(2,3)
 	pos.addConstraint(1,3)
+	pos.addConstraint(1,4)
 	try:
 		pos.addConstraint(3,1)
 	except RuntimeError:
 		assert pos.validate()
+		assert pos.compare(1,2) == -1
+		assert pos.compare(1,4) == -1
+		assert pos.compare(3,2) == 1
+		assert pos.compare(1,1) == 0
+		assert pos.compare(2,5) == 0
 		return
 	assert False
 	
