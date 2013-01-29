@@ -84,10 +84,15 @@ def applyCase2(args):
 		x = l.pop()
 		if x.bond != None:
 			assert x == bottomSide
+			x = graph.interpolateSegment(x.segment).getSide(x.left)
+		if len(x.liftedLabels()) == 1:
+			assert x != rootSide
+			assert x != bottomSide
 			assert rootSide.bond != None
 			print 'Adding necessary bridge bond'
-			createNecessaryBridge(rootSide, graph.interpolateSegment(x.segment).getSide(x.left))
-		elif len(x.liftedLabels()) > 1:
+			createNecessaryBridge(rootSide, x)
+		else: 
+			assert len(x.liftedLabels()) > 1
 			print 'Adding junction label'
 			l2 = []
 			for y in x.liftedLabels():
@@ -105,10 +110,6 @@ def applyCase2(args):
 				#we can attach to another segment that has non-trivial lifts
 				#or to a segment that has no
 				createNecessaryBridge(rootSide, x)
-		else:
-			assert x != rootSide
-			print 'Adding necessary bridge bond'
-			createNecessaryBridge(rootSide, x)
 
 def listCase2(graph):
 	return [ExtensionMove(applyCase2, (side, graph)) for side in filter(lambda X: X.rearrangementAmbiguity() > 0, graph.sides())]
