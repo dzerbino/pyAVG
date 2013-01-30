@@ -164,8 +164,8 @@ class Segment(object):
 		label = str(self.label)	
 		if self.substitutionAmbiguity() > 0:
 			label += 'S'
-		if self.coalescenceAmbiguity() > 0:
-			label += 'C'
+		#if self.coalescenceAmbiguity() > 0:
+		#	label += 'C'
 		if self.left.rearrangementAmbiguity() > 0:
 			label += 'L'
 		if self.right.rearrangementAmbiguity() > 0:
@@ -190,5 +190,5 @@ class Segment(object):
 		assert all(self is child.parent for child in self.children)
 		assert self.left.validate()
 		assert self.right.validate()
-		assert self.lowerBoundSubstitutionCost() <= self.upperBoundSubstitutionCost(False)
+		assert self.lowerBoundSubstitutionCost() <= self.upperBoundSubstitutionCost()
 		return True

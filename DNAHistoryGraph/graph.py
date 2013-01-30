@@ -177,8 +177,12 @@ class DNAHistoryGraph(object):
 	##################################
 	## Cost
 	##################################
-	def substitutionCost(self, lowerBound=True):
-		return sum(X.substitutionCost(lowerBound) for X in self.segments)
+	
+	def lowerBoundSubstitutionCost(self):
+		return sum(X.lowerBoundSubstitutionCost() for X in self.segments)
+	
+	def upperBoundSubstitutionCost(self):
+		return sum(X.upperBoundSubstitutionCost() for X in self.segments)
 
 	def sides(self):
 		return sum([X.sides() for X in self.segments], [])
@@ -188,10 +192,13 @@ class DNAHistoryGraph(object):
 
 	def modules(self):
 		return reduce(lambda X, Y: Y.modules(X), self._moduleSides(), (list(), set()))[0]
-
-	def rearrangementCost(self, lowerBound=True):
-		return sum(X.rearrangementCost(lowerBound) for X in self.modules())
-
+	
+	def lowerBoundRearrangementCost(self):
+		return sum(X.lowerBoundRearrangementCost() for X in self.segments)
+	
+	def upperBoundRearrangementCost(self):
+		return sum(X.upperBoundRearrangementCost() for X in self.segments)
+	
 	##################################
 	## Output
 	##################################
