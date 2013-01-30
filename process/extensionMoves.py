@@ -37,13 +37,13 @@ def applyCase1(args):
 	if segment.label is None:
 		# In an ideal world Fitch parsimony would be a nice touch...
 		print 'Adding junction label'
-		segment.label = Label(random.choice(['A','T'])) 
+		segment.label = Label(segment, random.choice(['A','T'])) 
 	else:
 		children = filter(lambda X: X.label is not None or len(X.liftedLabels()) > 0, segment.children)
 		children.pop(random.randrange(len(children)))
 		if len(children) == 1 and children[0].label is None and random.random() < 0.5:
 			print 'Labelling child'
-			children[0].label = Label(segment.label)
+			children[0].label = Label(children[0], segment.label)
 		else:
 			print 'Adding label bridge'
 			bridge = graph.newSegment()
@@ -51,7 +51,7 @@ def applyCase1(args):
 				graph.deleteBranch(segment, child)
 				graph.createBranch(bridge, child) 
 			graph.createBranch(segment, bridge)
-			bridge.label = Label(segment.label)
+			bridge.label = Label(bridge, segment.label)
 
 ###############################################
 ## Case 2

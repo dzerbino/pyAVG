@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 class Label(object):
-	def __init__(self, sequence=None):
+	def __init__(self, segment, sequence=None):
+		self.segment = segment
 		self.sequence = str(sequence)[0]
 
 	def __str__(self):
