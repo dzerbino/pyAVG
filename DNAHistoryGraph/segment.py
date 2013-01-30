@@ -135,7 +135,7 @@ class Segment(object):
 	def upperBoundSubstitutionCost(self):
 		nTLabels = self.nonTrivialLiftedLabels()
 		i = 0
-		if self.label == None:
+		if self.label == None and len(nTLabels) > 0:
 			i = Counter([ x.label for x in nTLabels ]).most_common()[0][1]
 		return len(nTLabels) - i
 

@@ -5,7 +5,7 @@ import random
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from pyAVG.inputs.simulator import RandomHistory
 
-def deAVG(avg, removalDensity=.5, labelRemovalDensity=0, bondRemovalDensity=0):
+def deAVG(avg, removalDensity=.5, labelRemovalDensity=0.5, bondRemovalDensity=0):
 	# Copy graph
 	graph = copy.copy(avg)
 

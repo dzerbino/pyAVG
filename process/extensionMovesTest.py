@@ -49,6 +49,6 @@ class ExtensionMovesTest(unittest.TestCase):
                 chosenExtension = random.choice(listCase1(graph))
                 chosenExtension.function(chosenExtension.args)
             print "Finally graph has substitution ambiguity %s, lbsc %i and ubsc %i" % (graph.substitutionAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
-            print graph.dot()
+            #print graph.dot()
 if __name__ == '__main__':
     unittest.main()
