@@ -3,7 +3,7 @@ import random
 import time
 
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
-from pyAVG.process.extensionMoves import listCase1
+from pyAVG.process.extensionMoves import listCase1, listCase2
 
 from pyAVG.inputs.simulator import RandomHistory
 from deAVG import deAVG
@@ -51,6 +51,12 @@ class ExtensionMovesTest(unittest.TestCase):
                 print "Graph has substitution ambiguity %s, lbsc %i and ubsc %i" % (graph.substitutionAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
                 chosenExtension = random.choice(listCase1(graph))
                 chosenExtension.function(chosenExtension.args)
+            
+            while graph.rearrangementAmbiguity():
+                print "Graph has rearrangement ambiguity %s, lbsc %i and ubsc %i" % (graph.rearrangementAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
+                chosenExtension = random.choice(listCase2(graph))
+                chosenExtension.function(chosenExtension.args)
+                
             print "Finally graph has substitution ambiguity %s, lbsc %i and ubsc %i" % (graph.substitutionAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
             print graph.dot()
             print "hello", i

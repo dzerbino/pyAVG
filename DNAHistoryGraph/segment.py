@@ -38,6 +38,11 @@ class Segment(object):
 
 	def __hash__(self):
 		return id(self)
+	
+	def getSide(self, left=True):
+		if left:
+			return side.left
+		return side.right
 
 	def sides(self):
 		""" Returns list of segment sides """

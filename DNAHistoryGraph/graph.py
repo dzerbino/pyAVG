@@ -88,19 +88,14 @@ class DNAHistoryGraph(object):
 			self.eventGraph.add(newThread)
 			self.eventGraph.remove(oldThread)
 			self.eventGraph.remove(oldThread2)
-			try:
-			    for traversal in newThread:
-				    self.segmentThreads[traversal.segment] = newThread
-			    for traversal in newThread:
-				    if traversal.segment.parent is not None:
-					    self.eventGraph.addConstraint(self.segmentThreads[traversal.segment.parent], newThread)
-				    for child in traversal.segment.children:
-					    self.eventGraph.addConstraint(newThread, self.segmentThreads[child])
-			except RuntimeError:
-				print self.dot()
-				print self.eventGraph.dot()
-				print id(sideA.segment), id(sideB.segment)
-				assert False
+			
+			for traversal in newThread:
+			    self.segmentThreads[traversal.segment] = newThread
+			for traversal in newThread:
+			    if traversal.segment.parent is not None:
+				    self.eventGraph.addConstraint(self.segmentThreads[traversal.segment.parent], newThread)
+			    for child in traversal.segment.children:
+				    self.eventGraph.addConstraint(newThread, self.segmentThreads[child])
 				
 	def sideThread(self, side):
 		return self.segmentThreads[side.segment]
@@ -169,7 +164,7 @@ class DNAHistoryGraph(object):
 		return sum(segment.rearrangementAmbiguity() for segment in self.segments)
 	
 	def ambiguity(self):
-		return self.coalescenceAmbiguity() + self.substitutionAmbiguity() + self.rearrangementAmbiguity()
+		return self.substitutionAmbiguity() + self.rearrangementAmbiguity()
 
 	def isAVG(self):
 		return self.ambiguity() == 0
@@ -200,6 +195,17 @@ class DNAHistoryGraph(object):
 		return sum(X.upperBoundRearrangementCost() for X in self.segments)
 	
 	##################################
+	## Ancestry queries
+	##################################
+	def threadCmp(self, thread1, thread2):
+		"""
+		Return -1 if thread1 is ancestor of thread2, return 1 is thread is descendant of thread 2 else return 0 
+		(Note: this assumes strict relationships, i.e. if thread1 == thread2, returns 0)
+		"""
+		return self.eventGraph.compare(thread1, thread2)
+
+	
+	##################################
 	## Output
 	##################################
 	def dot(self):
@@ -219,5 +225,5 @@ class DNAHistoryGraph(object):
 		assert all(X.left.bond.segment in self.segments for X in self.segments if X.left.bond is not None)
 		assert all(X.right.bond.segment in self.segments for X in self.segments if X.right.bond is not None)
 		assert self.eventGraph.validate()
-		assert all(X.validate(self) for X in self.modules())
+		#assert all(X.validate(self) for X in self.modules())
 		return True

@@ -73,70 +73,73 @@ def applyCase1(args):
 ###############################################
 
 def sideAttachment(sidetoAttach, otherSideToAttach, graph):
-	graph.createBond(graph, sideToAttach, otherSideToAttach)
+	graph.createBond(sideToAttach, otherSideToAttach)
 
-def branchAttachment(sideToAttach, branch, graphs):
-	graph.createBond(graph, sideToAttach, graph.interpolateSegment(branch).getSide(branch.left))
+def branchAttachment(sideToAttach, branch, graph):
+	graph.createBond(sideToAttach, graph.interpolateSegment(branch).getSide(branch.left))
 
 def childAttachment(sideToAttach, parent, graph):
 	x = graph.newSegment(graph)
-	graph.createBranch(graph, parent, x)
+	graph.createBranch(parent.segment, x)
 	graph.createBond(sideToAttach, x.getSide(parent.left))
 	
 def stubAttachment(sideToAttach, nullArgument, graph):
 	assert nullArgument == None
 	graph.createBond(x, graph.newSegment().getSide(True))
 
-def getConcomittantPartners(bottomSegment, sideToAttach, graph):
-	l = []
-	def fn(x):
-		if graph.descendant(sideToAttach.thread, x.thread) or graph.concomittant(sideToAttach.thread, x.thread):
-			y = x.parent()
-			if y == None or graph.ancestor(sideToAttach.thread, y.thread) or graph.concomittant(sideToAttach.thread, y.thread):
-				l.append((branchAttachment, x))
-	fn(bottomSegment)
-	x = bottomSegment.parent()
-	while x != None and x.bond == None:
-		fn(x)
-		if graph.concomittant(graph, sideToAttach.thread, x.thread):
-			l.append((sideAttachment, x))
-		x = x.parent
-
-def getPossibleBridgeBonds(rootSide, sideToAttach, graph):
-	assert rootSide.bond != None
-	return reduce(lambda x, y : x + y, m[ [ (childAttachment, rootSide.bond)] ] + [ getConcomittantPartners(z, sideToAttach, graph) for z in rootSide.bond.nonTrivialLiftedSides() ])
-		
-def getPossibleJunctionBonds(sideToAttach, graph):
-	return reduce(lambda x, y : x + y, [ [] ] + [ getConcomittantPartners(z.bond, sideToAttach, graph) for z in sideToAttach.liftedBonds() ])
-
-def chooseRandomUnattachedSegmentOnSideLineage(rootSide, bottomSide, graph):
+def getUnattachedJunctionsAndEligibleUnattachedSidesOnLineage(bottomSide):
 	#On the path from rootSide to bottomSide make list of junction sides
 	#and sides with no unattached junction ancestors in this path
 	l = []
 	x = bottomSide.parent()
-	while x != rootSide:
-		if x.liftedLabels() > 1:
+	#First get the eligible unattached junctions
+	while x != None and x.bond == None:
+		if len(x.liftedBonds()) > 1:
 			l.append(x)
 		x = x.parent()
-	if rootSide.bond == None:
-		l.append(rootSide)
-	else:
+	if x != None:
+		assert x.bond != None #If root is unattached then it can be attached
 		if len(l) > 0:
-			x = l[-1]
+			x = l[-1].parent()
 		else:
 			x = bottomSide
-		while x != rootSide:
-			if x == bottomSide or x.liftedLabels() == 1:
-				l.append(x)
+		while x.bond == None or x == bottomSide:
+			assert x == bottomSide or len(x.liftedBonds()) == 1
+			l.append(x)
 			x = x.parent()
-	#Now choose random member of l to attach
-	x = random.choice(l)
-	
+	else:
+		assert len(l) > 0
+	return l
+
+def getUnattachedSidesOnSideLineage(bottomSide):
+	l = []
+	while bottomSide != None and bottomSide.bond == None:
+		l.append(bottomSide)
+		bottomSide = bottomSide.parent()
+	return l
+
+def getConcomittantPartners(bottomSide, sideToAttach, graph, eligibleSidesFn):
+	l = []
+	for x in eligibleSidesFn(bottomSide):
+		if graph.threadCmp(sideToAttach.segment.thread(), x.segment.thread()) == 0:
+			l.append((sideAttachment, x))
+		if graph.threadCmp(sideToAttach.segment.thread(), x.segment.thread()) <= 0 and \
+		(x.parent() == None or graph.threadCmp(sideToAttach.segment.thread(), x.segment.parent.thread()) >= 0):
+			l.append((branchAttachment, x))
+	return l
+
+def getPossibleBridgeBonds(rootSide, sideToAttach, graph, eligibleSidesFn):
+	assert rootSide.bond != None
+	return reduce(lambda x, y : x + y, [ [ (childAttachment, rootSide.bond)] ] + [ getConcomittantPartners(z, sideToAttach, graph, eligibleSidesFn) for z in rootSide.bond.nonTrivialLiftedBonds() ])
+		
+def getPossibleJunctionBonds(sideToAttach, graph):
+	return reduce(lambda x, y : x + y, [ [] ] + [ getConcomittantPartners(z.bond, sideToAttach, graph, getUnattachedSidesOnSideLineage) for z in sideToAttach.liftedBonds() ])
+
+def chooseRandomUnattachedSegmentOnSideLineage(bottomSide, graph):
+	x = random.choice(getUnattachedJunctionsAndEligibleUnattachedSidesOnLineage(bottomSide))
 	#If we've chosen the bottom side then it is attached already, so we need to interpolate, else we do it for the hell of it..
-	if x == bottomSide or (x.liftedLabels() == 1 and random.random() > 0.5):
-		assert x.bond != None
+	if x == bottomSide or (len(x.liftedBonds()) == 1 and random.random() > 0.5):
 		x = graph.interpolateSegment(x.segment).getSide(x.left)
-	
 	return x
 
 def applyCase2(args):
@@ -146,21 +149,22 @@ def applyCase2(args):
 	bottomSide = random.choice(list(rootSide.nonTrivialLiftedBonds()))
 	assert bottomSide != rootSide
 	
-	sideToAttach = chooseRandomUnattachedSegmentOnSideLineage(rootSide, bottomSide, graph)
+	sideToAttach = chooseRandomUnattachedSegmentOnSideLineage(bottomSide, graph)
 	assert sideToAttach.bond == None
 	
 	#Now proceed to attach chosen side
-	if rootSide.bond != None:
-		l = getPossibleBridgeBonds(rootSide, sideToAttach, graph)
+	if len(sideToAttach.liftedBonds()) > 1:
+		l = getPossibleJunctionBonds(sideToAttach, graph) 
+		if rootSide.bond != None:
+			l += getPossibleBridgeBonds(rootSide, sideToAttach, graph, getUnattachedSidesOnSideLineage)
 	else:
-		l = []
-	if len(sideToAttach.liftedLabels()) > 1:
-		l += getPossibleJunctionBonds(sideToAttach, graph)
+		assert rootSide.bond != None
+		l = getPossibleBridgeBonds(rootSide, sideToAttach, graph, getUnattachedJunctionsAndEligibleUnattachedSidesOnLineage)
 	if len(l) == 0:
 		assert rootSide.bond == None
 		l.append((stubAttachment, None))
 	i = random.choice(l)
-	i[0](i[1])
+	i[0](sideToAttach, i[1], graph)
 
 def listCase2(graph):
 	return [ExtensionMove(applyCase2, (side, graph)) for side in filter(lambda X: X.rearrangementAmbiguity() > 0, graph.sides())]
