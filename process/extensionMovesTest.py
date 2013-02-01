@@ -35,20 +35,25 @@ class ExtensionMovesTest(unittest.TestCase):
         
     def testCase1_random(self):
         last = time.time()
-        for i in range(100):
+        for i in range(1):
             print 'EXPERIMENT', i, time.time() - last
             last = time.time()
             history = RandomHistory(10, 10)
             avg = history.avg()
+            print avg.dot()
+            print "Avg has substitution ambiguity %s, lbsc %i and ubsc %i" % (avg.substitutionAmbiguity(), avg.lowerBoundSubstitutionCost(), avg.upperBoundSubstitutionCost())
             assert avg.validate()
             graph = deAVG(avg)
             assert graph.validate()
-            print "Avg has substitution ambiguity %s, lbsc %i and ubsc %i" % (avg.substitutionAmbiguity(), avg.lowerBoundSubstitutionCost(), avg.upperBoundSubstitutionCost())
+            print graph.dot()
+            i = graph.substitutionAmbiguity()
             while graph.substitutionAmbiguity():
                 print "Graph has substitution ambiguity %s, lbsc %i and ubsc %i" % (graph.substitutionAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
                 chosenExtension = random.choice(listCase1(graph))
                 chosenExtension.function(chosenExtension.args)
             print "Finally graph has substitution ambiguity %s, lbsc %i and ubsc %i" % (graph.substitutionAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
-            #print graph.dot()
+            print graph.dot()
+            print "hello", i
+
 if __name__ == '__main__':
     unittest.main()

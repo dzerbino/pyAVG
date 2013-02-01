@@ -7,12 +7,14 @@ import unittest
 
 from pyAVG.DNAHistoryGraph.graphTest import DNAHistoryGraphTest
 from pyAVG.DNAHistoryGraph.segmentTest import SegmentTest
+from pyAVG.DNAHistoryGraph.sideTest import SideTest
 
 from cactus.shared.test import parseCactusSuiteTestOptions
 
 def allSuites(): 
     allTests = unittest.TestSuite((unittest.makeSuite(DNAHistoryGraphTest, 'test'),
-                                   unittest.makeSuite(SegmentTest, 'test')))
+                                   unittest.makeSuite(SegmentTest, 'test'),
+                                   unittest.makeSuite(SideTest, 'test')))
     return allTests
         
 def main():

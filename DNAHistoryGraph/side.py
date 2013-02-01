@@ -98,7 +98,7 @@ class Side(object):
 			target = self.bond.ancestor()
 			return [(target, target is not self.ancestor().bond or _junctionsOnTheWay(target), self)]
 
-	def liftedPartners(self):
+	def liftedBonds(self):
 		""" Returns list of tuples (lifted edge partner of self, is non trivial) """
 		if self.parent() is not None or self.bond is None:
 			return sum([X._liftedPartners2() for X in self.children()], [])
@@ -106,7 +106,7 @@ class Side(object):
 			# Special case for root nodes which are their own ancestors
 			return sum([X._liftedPartners2() for X in self.children()], [(self.bond.ancestor(), self.bond.segment.parent is not None)])
 
-	def nonTrivialLiftedPartners(self):
+	def nonTrivialLiftedBonds(self):
 		""" Return list of non trivial lifted edge partners """
 		if self.bond is not None:
 			return [X[0] for X in self.liftedPartners() if X[1]]
@@ -119,7 +119,7 @@ class Side(object):
 
 	def rearrangementAmbiguity(self):
 		# Note: self looping lifted edges are already reported twice so the formula is correct
-		return max(0, len(self.nonTrivialLiftedPartners()) - 1)
+		return max(0, len(self.nonTrivialLiftedBonds()) - 1)
 
 	##############################
 	## Modules

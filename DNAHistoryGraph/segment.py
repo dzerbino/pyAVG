@@ -42,7 +42,7 @@ class Segment(object):
 	def sides(self):
 		""" Returns list of segment sides """
 		return [self.left, self.right]
-
+	
 	def createBranch(self, other):
 		""" Creates branch between segments """
 		assert other
@@ -164,15 +164,13 @@ class Segment(object):
 		label = str(self.label)	
 		if self.substitutionAmbiguity() > 0:
 			label += 'S'
-		#if self.coalescenceAmbiguity() > 0:
-		#	label += 'C'
-		if self.left.rearrangementAmbiguity() > 0:
-			label += 'L'
-		if self.right.rearrangementAmbiguity() > 0:
-			label += 'R'
+		#if self.left.rearrangementAmbiguity() > 0:
+		#	label += 'L'
+		#if self.right.rearrangementAmbiguity() > 0:
+		#	label += 'R'
 		lines = ['%i [label="%s"]' % (id(self), label)]
 		if self.parent is not None:
-			if self.parent.label == self.label:
+			if self.ancestor().label == self.label or (self.label == None and len(self.liftedLabels().intersection(self.ancestor().nonTrivialLiftedLabels())) == 0): 
 				lines.append('%i -> %i [color=green]' % (id(self.parent), id(self)))
 			else:
 				lines.append('%i -> %i [color=blue]' % (id(self.parent), id(self)))
