@@ -48,10 +48,8 @@ class Side(object):
 		if self.segment.parent is not None:
 			if self.left:
 				return self.segment.parent.left
-			else:
-				return self.segment.parent.right
-		else:
-			return None
+			return self.segment.parent.right
+		return None
 
 	def children(self):
 		if self.left:
@@ -69,7 +67,7 @@ class Side(object):
 			return any(X._hasAttachedDescent() for X in self.children())
 
 	def isJunction(self):
-		return len(self.children()) > 2 and sum(X._hasAttachedDescent() for X in self.children()) > 2
+		return len(self.children()) >= 2 and sum(X._hasAttachedDescent() for X in self.children()) >= 2
 
 	def _ancestor2(self):
 		if self.bond is not None or self.parent() is None:
@@ -83,35 +81,29 @@ class Side(object):
 		else:
 			return self.parent()._ancestor2()
 
-	def _liftedPartners2(self):
-		""" Recursive element of liftedPartners """
+	def _liftedBonds2(self,):
 		if self.bond is None:
-			childLiftedBonds = [X._liftedPartners2() for X in self.children()]
-			liftingPartners = sum(childLiftedBonds, [])
-			if sum(len(X) > 0 for X in childLiftedBonds) > 1:
-				# Unattached bond junction!!
-				return [(X[0], True, X[2]) for X in liftingPartners]
-			else:
-				# Unattached bond on linear lifting path 
-				return liftingPartners
+			return self.liftedBonds()
 		else:
-			target = self.bond.ancestor()
-			return [(target, target is not self.ancestor().bond or _junctionsOnTheWay(target), self)]
-
+			return set([ self ])
+	
 	def liftedBonds(self):
-		""" Returns list of tuples (lifted edge partner of self, is non trivial) """
-		if self.parent() is not None or self.bond is None:
-			return sum([X._liftedPartners2() for X in self.children()], [])
-		else:
-			# Special case for root nodes which are their own ancestors
-			return sum([X._liftedPartners2() for X in self.children()], [(self.bond.ancestor(), self.bond.segment.parent is not None)])
-
+		""" Returns set of labeled segments whose lifting ancestor is self"""
+		if len(self.children()) == 0:
+			return set()
+		return set(reduce(lambda x, y : x | y, [x._liftedBonds2() for x in self.children() ]))
+	
 	def nonTrivialLiftedBonds(self):
 		""" Return list of non trivial lifted edge partners """
-		if self.bond is not None:
-			return [X[0] for X in self.liftedPartners() if X[1]]
-		else:
-			return [X[0] for X in self.liftedPartners()]
+		def fn(x):
+			#Returns True if no unattached junction on path to ancestor, else false.
+			if x.parent() == x.ancestor():
+				return False
+			if x.parent().bond == None and x.parent().isJunction():
+				return True
+			return fn(x.parent())
+		return set([ x for x in self.liftedBonds() if x.bond.ancestor() != self.bond 
+				or fn(x) or fn(x.bond) ])
 
 	##############################
 	## Ambiguity
@@ -119,6 +111,8 @@ class Side(object):
 
 	def rearrangementAmbiguity(self):
 		# Note: self looping lifted edges are already reported twice so the formula is correct
+		if self.bond == None and self.parent != None:
+			return 0
 		return max(0, len(self.nonTrivialLiftedBonds()) - 1)
 
 	##############################

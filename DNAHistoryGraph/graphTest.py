@@ -41,5 +41,14 @@ class DNAHistoryGraphTest(unittest.TestCase):
         self.assertEqual(s5, self.s2.parent)
         self.assertEqual(s5, self.s3.parent)
         
+    def testCreateBond(self):
+        pass
+    
+    def testDeleteBond(self):
+        pass
+    
+    def testAreSiblings(self):
+        pass
+        
 if __name__ == '__main__':
     unittest.main()
