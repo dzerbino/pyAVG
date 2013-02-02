@@ -87,7 +87,7 @@ def stubAttachment(sideToAttach, nullArgument, graph):
 	assert nullArgument == None
 	graph.createBond(x, graph.newSegment().getSide(True))
 
-def getUnattachedJunctionsAndEligibleUnattachedSidesOnLineage(bottomSide):
+def getEligibleUnattachedSidesOnLineage(bottomSide):
 	#On the path from rootSide to bottomSide make list of junction sides
 	#and sides with no unattached junction ancestors in this path
 	l = []
@@ -136,7 +136,7 @@ def getPossibleJunctionBonds(sideToAttach, graph):
 	return reduce(lambda x, y : x + y, [ [] ] + [ getConcomittantPartners(z.bond, sideToAttach, graph, getUnattachedSidesOnSideLineage) for z in sideToAttach.liftedBonds() ])
 
 def chooseRandomUnattachedSegmentOnSideLineage(bottomSide, graph):
-	x = random.choice(getUnattachedJunctionsAndEligibleUnattachedSidesOnLineage(bottomSide))
+	x = random.choice(getEligibleUnattachedSidesOnLineage(bottomSide))
 	#If we've chosen the bottom side then it is attached already, so we need to interpolate, else we do it for the hell of it..
 	if x == bottomSide or (len(x.liftedBonds()) == 1 and random.random() > 0.5):
 		x = graph.interpolateSegment(x.segment).getSide(x.left)
@@ -159,7 +159,7 @@ def applyCase2(args):
 			l += getPossibleBridgeBonds(rootSide, sideToAttach, graph, getUnattachedSidesOnSideLineage)
 	else:
 		assert rootSide.bond != None
-		l = getPossibleBridgeBonds(rootSide, sideToAttach, graph, getUnattachedJunctionsAndEligibleUnattachedSidesOnLineage)
+		l = getPossibleBridgeBonds(rootSide, sideToAttach, graph, getEligibleUnattachedSidesOnLineage)
 	if len(l) == 0:
 		assert rootSide.bond == None
 		l.append((stubAttachment, None))
