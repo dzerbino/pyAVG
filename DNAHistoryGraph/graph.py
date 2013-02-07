@@ -99,6 +99,9 @@ class DNAHistoryGraph(object):
 				
 	def sideThread(self, side):
 		return self.segmentThreads[side.segment]
+	
+	def segmentThread(self, segment):
+		return self.segmentThreads[segment]
 		
 	def deleteBond(self, sideA):
 		""" Deletes bond between two sides and updates event graph """

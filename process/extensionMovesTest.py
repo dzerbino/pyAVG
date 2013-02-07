@@ -7,6 +7,7 @@ from pyAVG.process.extensionMoves import listCase1, listCase2
 
 from pyAVG.inputs.simulator import RandomHistory
 from deAVG import deAVG
+from sonLib.bioio import system
 import extensionMoves
 
 class ExtensionMovesTest(unittest.TestCase):
@@ -40,12 +41,17 @@ class ExtensionMovesTest(unittest.TestCase):
             last = time.time()
             history = RandomHistory(10, 10)
             avg = history.avg()
-            print avg.dot()
+            def writeGraph(graph, file):
+                fileHandle = open(file, 'w')
+                fileHandle.write("%s\n" % avg.dot())
+                fileHandle.close()
+                system("dot -Tpdf %s > %s.pdf" % (file, file))
+            writeGraph(avg, "history.dot")
             print "Avg has substitution ambiguity %s, lbsc %i and ubsc %i" % (avg.substitutionAmbiguity(), avg.lowerBoundSubstitutionCost(), avg.upperBoundSubstitutionCost())
             assert avg.validate()
             graph = deAVG(avg)
             assert graph.validate()
-            print graph.dot()
+            writeGraph(graph, "graph.dot")
             i = graph.substitutionAmbiguity()
             while graph.substitutionAmbiguity():
                 print "Graph has substitution ambiguity %s, lbsc %i and ubsc %i" % (graph.substitutionAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
@@ -58,8 +64,8 @@ class ExtensionMovesTest(unittest.TestCase):
                 chosenExtension.function(chosenExtension.args)
                 
             print "Finally graph has substitution ambiguity %s, lbsc %i and ubsc %i" % (graph.substitutionAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
-            print graph.dot()
             print "hello", i
+            writeGraph(graph, "avg.dot")
 
 if __name__ == '__main__':
     unittest.main()
