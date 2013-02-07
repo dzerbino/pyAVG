@@ -49,6 +49,20 @@ class DNAHistoryGraph(object):
 		self.segmentThreads[segment] = T
 		return segment
 
+	def deleteSegment(self, segment):
+		# Transitive extension of branches
+		parent = segment.parent
+		children = segment.children	
+		self.deleteBranch(parent, segment)
+		for child in children:
+			self.deleteBranch(segment, child)
+			self.createBranch(parent, child)
+		# Deletion of bonds
+		self.deleteBond(segment.left)
+		self.deleteBond(segment.right)
+		# Discarding record
+		self.segments.remove(segment)
+
 	def sideThread(self, side):
 		return self.segmentThreads[side.segment]
 
