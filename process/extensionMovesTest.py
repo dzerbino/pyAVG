@@ -39,33 +39,60 @@ class ExtensionMovesTest(unittest.TestCase):
         for i in range(1):
             print 'EXPERIMENT', i, time.time() - last
             last = time.time()
+            
+            #Create a random history
             history = RandomHistory(10, 10)
             avg = history.avg()
+            
+            #Functions for reporting the results
             def writeGraph(graph, file):
                 fileHandle = open(file, 'w')
-                fileHandle.write("%s\n" % avg.dot())
+                fileHandle.write("%s\n" % graph.dot())
                 fileHandle.close()
                 system("dot -Tpdf %s > %s.pdf" % (file, file))
-            writeGraph(avg, "history.dot")
-            print "Avg has substitution ambiguity %s, lbsc %i and ubsc %i" % (avg.substitutionAmbiguity(), avg.lowerBoundSubstitutionCost(), avg.upperBoundSubstitutionCost())
-            assert avg.validate()
-            graph = deAVG(avg)
-            assert graph.validate()
-            writeGraph(graph, "graph.dot")
-            i = graph.substitutionAmbiguity()
-            while graph.substitutionAmbiguity():
-                print "Graph has substitution ambiguity %s, lbsc %i and ubsc %i" % (graph.substitutionAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
-                chosenExtension = random.choice(listCase1(graph))
-                chosenExtension.function(chosenExtension.args)
             
-            while graph.rearrangementAmbiguity():
-                print "Graph has rearrangement ambiguity %s, lbsc %i and ubsc %i" % (graph.rearrangementAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
-                chosenExtension = random.choice(listCase2(graph))
+            def reportGraph(graph, graphName):
+                print "%s has u %s, u_s %s, u_r %s, lbsc %i, ubsc %i, lbrc %i, ubrc %i" % (graphName, \
+                                                                                           graph.ambiguity(), \
+                                                                                           graph.substitutionAmbiguity(), \
+                                                                                           graph.rearrangementAmbiguity(), \
+                                                                                           graph.lowerBoundSubstitutionCost(), \
+                                                                                           graph.upperBoundSubstitutionCost(), \
+                                                                                           graph.lowerBoundRearrangementCost(), \
+                                                                                           graph.upperBoundRearrangementCost())
+            
+            #Report the starting point
+            reportGraph(avg, "AVG")
+            writeGraph(avg, "history.dot")
+            assert avg.validate()
+            
+            #Undo stuff in the first graph
+            graph = deAVG(avg)
+            
+            #Write stuff about G
+            writeGraph(graph, "graph.dot")
+            reportGraph(graph, "G")
+            assert graph.validate()
+            
+            #Undo the ambiguity
+            while graph.ambiguity():
+                c1EL = listCase1(graph)
+                c2EL = listCase2(graph)
+                print len(c1EL), len(c2EL)
+                chosenExtension = random.choice(c1EL + c2EL)
                 chosenExtension.function(chosenExtension.args)
                 
-            print "Finally graph has substitution ambiguity %s, lbsc %i and ubsc %i" % (graph.substitutionAmbiguity(), graph.lowerBoundSubstitutionCost(), graph.upperBoundSubstitutionCost()) 
-            print "hello", i
+                reportGraph(graph, "G'")
+                assert graph.validate()
+            
+            #Report final AVG
+            reportGraph(graph, "H")
             writeGraph(graph, "avg.dot")
+            assert graph.validate()
+            
+            for m in graph.modules():
+                print "hello", len(m.sides), [ len(x.nonTrivialLiftedBonds()) for x in m.sides ], m.freeRootNumber
+                assert m.isSimple()
 
 if __name__ == '__main__':
     unittest.main()

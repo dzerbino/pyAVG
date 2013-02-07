@@ -5,6 +5,7 @@ import copy
 import thread
 from traversal import Traversal
 from segment import Segment
+from module import Module
 from pyAVG.utils.partialOrderSet import PartialOrderSet
 
 class DNAHistoryGraph(object):
@@ -189,13 +190,17 @@ class DNAHistoryGraph(object):
 		return filter(lambda X: X.isModuleMaterial(), self.sides())
 
 	def modules(self):
-		return reduce(lambda X, Y: Y.modules(X), self._moduleSides(), (list(), set()))[0]
+		seen = set()
+		def fn(m):
+			set |= m.sides
+			return m
+		return [ Module(x) for x in self._moduleSides() if x not in seen ]
 	
 	def lowerBoundRearrangementCost(self):
-		return sum(X.lowerBoundRearrangementCost() for X in self.segments)
+		return sum(X.lowerBoundRearrangementCost() for X in self.modules())
 	
 	def upperBoundRearrangementCost(self):
-		return sum(X.upperBoundRearrangementCost() for X in self.segments)
+		return sum(X.upperBoundRearrangementCost() for X in self.modules())
 	
 	##################################
 	## Ancestry queries

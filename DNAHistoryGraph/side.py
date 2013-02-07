@@ -114,38 +114,13 @@ class Side(object):
 		if self.bond == None and self.parent != None:
 			return 0
 		return max(0, len(self.nonTrivialLiftedBonds()) - 1)
-
+	
 	##############################
 	## Modules
 	##############################
-	def _expandModule(self, module):
-		selfLoops = 0
-		module.sides.add(self)
-		if self.bond is not None and self.bond not in module.sides:
-			self.bond._expandModule(module)
-		for partner in self.nonTrivialLiftedPartners():
-			if partner is self:
-				selfLoops += 1
-			if partner < self:
-				module.nonTrivialLiftedEdges.append(liftedEdge.LiftedEdge((self, partner)))
-			if partner not in module.sides:
-				partner._expandModule(module)
-		for i in range(selfLoops / 2):
-			# Note: each self loop is reported twice in the list (one for each incidence)	
-			module.nonTrivialLiftedEdges.append(liftedEdge.LiftedEdge((self, self)))
-
-	def modules(self, data):
-		""" Returns a list of modules and a set of already visited sides """
-		modules, visited = data
-		if self in visited:
-			return data
-		else:
-			M = module.Module()
-			self._expandModule(M)
-			return modules + [M], visited | M.sides
-
+	
 	def isModuleMaterial(self):
-		return self.bond is not None or (self.segment.parent is None and len(self.liftedPartners()) > 1)
+		return self.bond is not None or len(self.liftedBonds()) > 0
 
 	##############################
 	## Output
