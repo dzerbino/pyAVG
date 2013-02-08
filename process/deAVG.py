@@ -17,9 +17,9 @@ def deAVG(avg, removalDensity=0.0, labelRemovalDensity=0.5, bondRemovalDensity=1
 		else:
 			if random.random() < labelRemovalDensity:
 				segment.label = None
-			if len(segment.left.liftedBonds()) > 1:
+			if len(segment.left.liftedBonds()) > 0:
 				segment.left.deleteBond()
-			if len(segment.right.liftedBonds()) > 1:
+			if len(segment.right.liftedBonds()) > 0:
 				segment.right.deleteBond()
 
 	# Recompute the event graph from scratch

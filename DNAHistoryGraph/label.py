@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 class Label(object):
-	def __init__(self, sequence=None):
-		self.sequence = str(sequence)[0]
+	def __init__(self, sequence):
+		assert sequence != None
+		self.sequence = str(sequence)
 
 	def __str__(self):
 		return self.sequence

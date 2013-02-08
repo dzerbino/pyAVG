@@ -36,7 +36,7 @@ class ExtensionMovesTest(unittest.TestCase):
         
     def testCase1_random(self):
         last = time.time()
-        for i in range(100):
+        for i in range(1):
             print 'EXPERIMENT', i, time.time() - last
             last = time.time()
             

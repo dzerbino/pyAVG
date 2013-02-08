@@ -127,10 +127,20 @@ class Side(object):
 	##############################
 
 	def dot(self):
-		if self.bond is not None and self.segment <= self.bond.segment:
-			return "%i -> %i [color=red, arrowhead=none]" % (id(self.segment), id(self.bond.segment)) 
-		else:
-			return ""
+		def fn(side):
+			if side.left:
+				return "normal"
+			return "inv"
+		l = []
+		if self.bond is not None: 
+			if self.segment <= self.bond.segment:
+				l.append("%i -> %i [color=red, dir=both, arrowtail=%s, arrowhead=%s]" % (id(self.segment), id(self.bond.segment), fn(self), fn(self.bond)))
+		if self.isModuleMaterial():
+			for descendant in self.nonTrivialLiftedBonds():
+				linkedAncestor = descendant.bond.ancestor()
+				if self.segment <= linkedAncestor.segment:
+					l.append("%i -> %i [color=magenta, dir=both, arrowtail=%s, arrowhead=%s]" % (id(self.segment), id(linkedAncestor.segment), fn(self), fn(linkedAncestor)))
+		return "\n".join(l)
 
 	##############################
 	## Validation

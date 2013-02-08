@@ -170,7 +170,10 @@ class Segment(object):
 	## Output
 	##########################
 	def dot(self):
-		label = str(self.label)	
+		if self.label != None:
+			label = str(self.label)	
+		else:
+			label = ""
 		if self.substitutionAmbiguity() > 0:
 			label += 'S'
 		#if self.left.rearrangementAmbiguity() > 0:
@@ -179,7 +182,7 @@ class Segment(object):
 		#	label += 'R'
 		lines = ['%i [label="%s"]' % (id(self), label)]
 		if self.parent is not None:
-			if self.ancestor().label == self.label or (self.label == None and len(self.liftedLabels().intersection(self.ancestor().nonTrivialLiftedLabels())) == 0): 
+			if (self.label != None and self.ancestor().label == self.label) or (self.label == None and len(self.liftedLabels().intersection(self.ancestor().nonTrivialLiftedLabels())) == 0): 
 				lines.append('%i -> %i [color=green]' % (id(self.parent), id(self)))
 			else:
 				lines.append('%i -> %i [color=blue]' % (id(self.parent), id(self)))
