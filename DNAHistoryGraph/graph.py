@@ -157,6 +157,11 @@ class DNAHistoryGraph(object):
 			self.deleteBranch(parent, child)
 			self.createBranch(newSegment, child)
 		return newSegment
+	
+	def addFreeRoots(self):
+		for x in list(self.segments):
+			if x.parent == None:
+				self.interpolateSegment(x)
 
 	##################################
 	## Ambiguity

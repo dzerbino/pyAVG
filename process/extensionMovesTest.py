@@ -1,6 +1,7 @@
 import unittest
 import random
 import time
+import copy
 
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from pyAVG.process.extensionMoves import listCase1, listCase2
@@ -41,11 +42,13 @@ class ExtensionMovesTest(unittest.TestCase):
             last = time.time()
             
             #Create a random history
-            history = RandomHistory(10, 10)
+            history = RandomHistory(3, 3)
             avg = history.avg()
             
             #Functions for reporting the results
             def writeGraph(graph, file):
+                graph = copy.copy(graph)
+                graph.addFreeRoots()
                 fileHandle = open(file, 'w')
                 fileHandle.write("%s\n" % graph.dot())
                 fileHandle.close()
@@ -80,6 +83,7 @@ class ExtensionMovesTest(unittest.TestCase):
             while graph.ambiguity():
                 c1EL = listCase1(graph)
                 c2EL = listCase2(graph)
+                print "There are %s labeling extensions and %s bond extensions" % (len(c1EL), len(c2EL))
                 chosenExtension = random.choice(c1EL + c2EL)
                 chosenExtension.function(chosenExtension.args)
                 

@@ -9,10 +9,7 @@ class Label(object):
 		return self.sequence
 
 	def complement(self):
-		if self.sequence is 'A':
-			return 'T'
-		else:
-			return 'A'
+		return { "A":"T", "T":'A', "C":'G', "G":"C"}[self.sequence]
 
 	def __cmp__(self, other):
 		if other is None:

@@ -133,12 +133,12 @@ class Side(object):
 			return "inv"
 		l = []
 		if self.bond is not None: 
-			if self.segment <= self.bond.segment:
+			if self <= self.bond:
 				l.append("%i -> %i [color=red, dir=both, arrowtail=%s, arrowhead=%s]" % (id(self.segment), id(self.bond.segment), fn(self), fn(self.bond)))
 		if self.isModuleMaterial():
 			for descendant in self.nonTrivialLiftedBonds():
 				linkedAncestor = descendant.bond.ancestor()
-				if self.segment <= linkedAncestor.segment:
+				if self < linkedAncestor:
 					l.append("%i -> %i [color=magenta, dir=both, arrowtail=%s, arrowhead=%s]" % (id(self.segment), id(linkedAncestor.segment), fn(self), fn(linkedAncestor)))
 		return "\n".join(l)
 
