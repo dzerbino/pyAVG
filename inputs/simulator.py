@@ -75,7 +75,7 @@ class InitialBranch(HistoryBranch):
 
 	def __init__(self, length):
 		super(InitialBranch, self).__init__()
-		self.genome = "".join('A' for X in range(1,length+ 1))
+		self.genome = "".join(random.choice([ "A", "C", "T", "G" ]) for X in range(1,length+ 1))
 
 	def _label(self):
 		return "INIT\n" + str(self.genome)
