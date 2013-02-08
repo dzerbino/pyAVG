@@ -62,10 +62,13 @@ def applyCase1(args):
 		x.setLabel(str(rootSegment.label))
 	else:
 		print 'Adding junction label'
+		assert len(x.liftedLabels()) > 1
 		l = rootSegment.liftedLabels()
 		if rootSegment.label != None:
 			l.add(rootSegment)
-		x.setLabel(str(random.choice(list(l))))
+		labelToAdd = random.choice(list(l)).label
+		assert labelToAdd != None
+		x.setLabel(str(labelToAdd))
 
 ###############################################
 ## Case 2
@@ -73,21 +76,26 @@ def applyCase1(args):
 ###############################################
 
 def sideAttachment(sideToAttach, otherSideToAttach, graph):
+	print "Doing side attachment"
 	assert graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(otherSideToAttach)) == 0
 	assert graph.areSiblings(graph.sideThread(sideToAttach), graph.sideThread(otherSideToAttach))
 	graph.createBond(sideToAttach, otherSideToAttach)
 
 def branchAttachment(sideToAttach, branch, graph):
+	print "Doing branch attachment"
 	graph.createBond(sideToAttach, graph.interpolateSegment(branch.segment).getSide(branch.left))
 
 def childAttachment(sideToAttach, parent, graph):
-	x = graph.newSegment(graph)
+	print "Doing child attachment"
+	x = graph.newSegment()
+	assert x.label == None
 	graph.createBranch(parent.segment, x)
 	graph.createBond(sideToAttach, x.getSide(parent.left))
 	
 def stubAttachment(sideToAttach, nullArgument, graph):
+	print "Doing stub attachment"
 	assert nullArgument == None
-	graph.createBond(x, graph.newSegment().getSide(True))
+	graph.createBond(sideToAttach, graph.newSegment().getSide(True))
 
 def getUnattachedJunctionSidesOnLineage(bottomSide):
 	#On the path from rootSide to bottomSide make list of junction sides
@@ -143,6 +151,7 @@ def chooseRandomUnattachedSegmentOnSideLineage(bottomSide, graph):
 	x = random.choice(getUnattachedPotentialBridgeAndJunctionSidesOnLineage(bottomSide))
 	#If we've chosen the bottom side then it is attached already, so we need to interpolate, else we do it for the hell of it..
 	if x == bottomSide or (len(x.liftedBonds()) == 1 and random.random() > 0.5):
+		print "interpolating segment"
 		x = graph.interpolateSegment(x.segment).getSide(x.left)
 	return x
 

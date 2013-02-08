@@ -8,7 +8,8 @@ class Module(object):
 		self.sides = set()
 		self.freeRootNumber = 0
 		def expandModule(side):
-			if side is not None and side not in self.sides:
+			if side != None and side not in self.sides:
+				assert side.isModuleMaterial()
 				self.sides.add(side)
 				expandModule(side.bond)
 				for descendant in side.nonTrivialLiftedBonds():
@@ -19,6 +20,7 @@ class Module(object):
 		expandModule(side)
 	
 	def lowerBoundRearrangementCost(self):
+		#print "calc", self.freeRootNumber, len(self.sides), math.ceil((self.freeRootNumber + len(self.sides))/2.0) - 1
 		return math.ceil((self.freeRootNumber + len(self.sides))/2.0) - 1
 	
 	def upperBoundRearrangementCost(self):

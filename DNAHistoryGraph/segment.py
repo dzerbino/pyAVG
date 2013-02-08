@@ -135,13 +135,17 @@ class Segment(object):
 	##########################
 	
 	def lowerBoundSubstitutionCost(self):
-		return max(0, len(set([ x.label for x in self.nonTrivialLiftedLabels() ])) - (self.label == None))
+		if self.label == None and self.parent != None:
+			return 0
+		return max(0, len(set([ str(x.label) for x in self.nonTrivialLiftedLabels() ])) - (self.label == None))
 	
 	def upperBoundSubstitutionCost(self):
+		if self.label == None and self.parent != None:
+			return 0
 		nTLabels = self.nonTrivialLiftedLabels()
 		i = 0
 		if self.label == None and len(nTLabels) > 0:
-			i = Counter([ x.label for x in nTLabels ]).most_common()[0][1]
+			i = Counter([ str(x.label) for x in nTLabels ]).most_common()[0][1]
 		return len(nTLabels) - i
 
 	##########################

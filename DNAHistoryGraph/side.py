@@ -111,7 +111,7 @@ class Side(object):
 
 	def rearrangementAmbiguity(self):
 		# Note: self looping lifted edges are already reported twice so the formula is correct
-		if self.bond == None and self.parent != None:
+		if self.bond == None and self.parent() != None:
 			return 0
 		return max(0, len(self.nonTrivialLiftedBonds()) - 1)
 	
@@ -120,7 +120,7 @@ class Side(object):
 	##############################
 	
 	def isModuleMaterial(self):
-		return self.bond is not None or len(self.liftedBonds()) > 0
+		return self.bond != None or (self.parent() == None and len(self.liftedBonds()) > 0)
 
 	##############################
 	## Output

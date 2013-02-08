@@ -165,7 +165,7 @@ class DNAHistoryGraph(object):
 		return sum(segment.substitutionAmbiguity() for segment in self.segments)
 
 	def rearrangementAmbiguity(self):
-		return sum(segment.rearrangementAmbiguity() for segment in self.segments)
+		return sum([ x.rearrangementAmbiguity() for x in self.sides() ])
 	
 	def ambiguity(self):
 		return self.substitutionAmbiguity() + self.rearrangementAmbiguity()
@@ -192,9 +192,10 @@ class DNAHistoryGraph(object):
 	def modules(self):
 		seen = set()
 		def fn(m):
-			set |= m.sides
+			for x in m.sides:
+				seen.add(x)
 			return m
-		return [ Module(x) for x in self._moduleSides() if x not in seen ]
+		return [ fn(Module(x)) for x in self._moduleSides() if x not in seen ]
 	
 	def lowerBoundRearrangementCost(self):
 		return sum(X.lowerBoundRearrangementCost() for X in self.modules())
@@ -233,5 +234,7 @@ class DNAHistoryGraph(object):
 		assert all(X.left.bond.segment in self.segments for X in self.segments if X.left.bond is not None)
 		assert all(X.right.bond.segment in self.segments for X in self.segments if X.right.bond is not None)
 		assert self.eventGraph.validate()
+		assert self.lowerBoundSubstitutionCost() <= self.upperBoundSubstitutionCost()
+		assert self.lowerBoundRearrangementCost() <= self.upperBoundRearrangementCost()
 		#assert all(X.validate(self) for X in self.modules())
 		return True

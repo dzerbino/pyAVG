@@ -36,7 +36,7 @@ class ExtensionMovesTest(unittest.TestCase):
         
     def testCase1_random(self):
         last = time.time()
-        for i in range(1):
+        for i in range(100):
             print 'EXPERIMENT', i, time.time() - last
             last = time.time()
             
@@ -75,15 +75,20 @@ class ExtensionMovesTest(unittest.TestCase):
             assert graph.validate()
             
             #Undo the ambiguity
+            lBSC = graph.lowerBoundSubstitutionCost()
+            lBRC = graph.lowerBoundRearrangementCost()
             while graph.ambiguity():
                 c1EL = listCase1(graph)
                 c2EL = listCase2(graph)
-                print len(c1EL), len(c2EL)
                 chosenExtension = random.choice(c1EL + c2EL)
                 chosenExtension.function(chosenExtension.args)
                 
                 reportGraph(graph, "G'")
                 assert graph.validate()
+                assert lBSC <= graph.lowerBoundSubstitutionCost()
+                assert lBRC <= graph.lowerBoundRearrangementCost()
+                lBSC = graph.lowerBoundSubstitutionCost()
+                lBRC = graph.lowerBoundRearrangementCost()
             
             #Report final AVG
             reportGraph(graph, "H")
@@ -91,7 +96,6 @@ class ExtensionMovesTest(unittest.TestCase):
             assert graph.validate()
             
             for m in graph.modules():
-                print "hello", len(m.sides), [ len(x.nonTrivialLiftedBonds()) for x in m.sides ], m.freeRootNumber
                 assert m.isSimple()
 
 if __name__ == '__main__':
