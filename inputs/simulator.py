@@ -287,7 +287,7 @@ class Deletion(Operation):
 		return CircularThread(thread[:self.start] + thread[self.start+self.length:])
 
 class Mutation(Operation):
-	"""Deletion branch"""
+	"""Substituion branch"""
 	def __init__(self, parent, pos):
 		self.pos = pos 
 		super(Mutation, self).__init__(parent)
@@ -318,7 +318,7 @@ class Mutation(Operation):
 		return 1
 
 	def modifyThread(self, thread):
-		thread[self.pos].segment.label = Label(thread[self.pos].segment.label.complement())
+		thread[self.pos].segment.label = Label(thread[self.pos].segment, thread[self.pos].segment.label.complement())
 		return thread
 
 #########################################
@@ -352,8 +352,7 @@ class History(object):
 #########################################
 ## Random Evolutionary History
 #########################################
-def _addChildBranch(branch, noDupes=False):
-	choice = random.random()
+def _addChildBranch(branch, choice, noDupes=False):
 	start = random.randrange(len(branch.genome))
 
 	if choice < 0.5:
@@ -386,25 +385,26 @@ def _birthDeathModel():
 	else:
 		return 1
 
-def _extendHistory_Branch(branch):
+def _extendHistory_Branch(branch, randomNum):
 	if len(branch.genome) == 0:
 		return
 	if _birthDeathModel() > 1:
 		# If more than one branch, then one must be identity, the other cannot dupe
 		Identity(branch)
-		_addChildBranch(branch, noDupes=True)
+		_addChildBranch(branch, randomNum, noDupes=True)
 	else:
-		_addChildBranch(branch)
+		_addChildBranch(branch, randomNum)
 
-def _extendHistory(branch, counter):
-	_extendHistory_Branch(branch)
+def _extendHistory(branch, counter, randomNums):
+	_extendHistory_Branch(branch, randomNums[counter-1])
 	if counter > 1:
-		map(lambda X: _extendHistory(X, counter - 1), branch.children)
+		map(lambda X: _extendHistory(X, counter - 1, randomNums), branch.children)
 
 class RandomHistory(History):
 	def __init__(self, length, maxDepth):
+		randomNums = [random.random() for X in range(maxDepth)]
 		root = InitialBranch(length)
-		_extendHistory(root, maxDepth)
+		_extendHistory(root, maxDepth, randomNums)
 		super(RandomHistory, self).__init__(root)
 
 #########################################

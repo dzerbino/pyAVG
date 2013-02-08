@@ -85,5 +85,5 @@ class Traversal(object):
 			return 'N'
 		elif self.orientation:
 			return str(self.segment.label)
-		elif self.segment.label is None:
+		else:
 			return self.segment.label.complement()
