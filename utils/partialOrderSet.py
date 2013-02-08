@@ -166,22 +166,8 @@ class PartialOrderSet(set):
 	################################################
 	## Checking ancestry
 	################################################
-	def _ancestors(self, elem):
-		# Yes, I know, recursion would be nicer, but Python is shite with deep recursions
-		todo = [elem]
-		ancestors = list()
-		while len(todo) > 0:
-			elem = todo.pop()
-			if elem not in ancestors:
-				ancestors.extend(self.parents[elem])
-				todo.extend(self.parents[elem])
-		return ancestors
-
 	def _isAncestor(self, parent, child):
-		if self.depth[parent] >= self.depth[child]:
-			return False
-		else:
-			return parent in self._ancestors(child)
+		return not self.testConstraint(child, parent)
 
 	def compare(self, elemA, elemB):
 		""" Return -1 if elemA is ancestor of elemB, return 1 is elemA is descendant of elemB else return 0 """
@@ -245,6 +231,7 @@ class PartialOrderSet(set):
 
 	def dot(self):
 		return "\n".join(["digraph G {"] + [self.depthDot(X) for X in self.depth] + [self.dot2(X) for X in self.children] + ["}"]) 
+
 ###########################################
 ## Unit test
 ###########################################
