@@ -95,6 +95,9 @@ class ExtensionMovesTest(unittest.TestCase):
             writeGraph(graph, "avg.dot")
             assert graph.validate()
             
+            assert graph.lowerBoundSubstitutionCost() == graph.upperBoundSubstitutionCost()
+            assert graph.lowerBoundRearrangementCost() == graph.upperBoundRearrangementCost()
+            
             for m in graph.modules():
                 assert m.isSimple()
 
