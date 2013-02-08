@@ -5,6 +5,7 @@ import copy
 import thread
 from traversal import Traversal
 from segment import Segment
+from module import Module
 from pyAVG.utils.partialOrderSet import PartialOrderSet
 
 class DNAHistoryGraph(object):
@@ -41,8 +42,8 @@ class DNAHistoryGraph(object):
 			duplicates[segment].children = set(duplicates[X] for X in segment.children)
 		return DNAHistoryGraph(duplicates.values())
 
-	def newSegment(self):
-		segment = Segment()
+	def newSegment(self, sequence=None):
+		segment = Segment(sequence=sequence)
 		self.segments.append(segment)
 		T = thread.Thread([Traversal(segment, True)])
 		self.eventGraph.add(T)
@@ -112,19 +113,20 @@ class DNAHistoryGraph(object):
 			self.eventGraph.add(newThread)
 			self.eventGraph.remove(oldThread)
 			self.eventGraph.remove(oldThread2)
-			try:
-			    for traversal in newThread:
-				    self.segmentThreads[traversal.segment] = newThread
-			    for traversal in newThread:
-				    if traversal.segment.parent is not None:
-					    self.eventGraph.addConstraint(self.segmentThreads[traversal.segment.parent], newThread)
-				    for child in traversal.segment.children:
-					    self.eventGraph.addConstraint(newThread, self.segmentThreads[child])
-			except RuntimeError:
-				print self.dot()
-				print self.eventGraph.dot()
-				print id(sideA.segment), id(sideB.segment)
-				assert False
+			
+			for traversal in newThread:
+			    self.segmentThreads[traversal.segment] = newThread
+			for traversal in newThread:
+			    if traversal.segment.parent is not None:
+				    self.eventGraph.addConstraint(self.segmentThreads[traversal.segment.parent], newThread)
+			    for child in traversal.segment.children:
+				    self.eventGraph.addConstraint(newThread, self.segmentThreads[child])
+				
+	def sideThread(self, side):
+		return self.segmentThreads[side.segment]
+	
+	def segmentThread(self, segment):
+		return self.segmentThreads[segment]
 		
 	def deleteBond(self, sideA):
 		""" Deletes bond between two sides and updates event graph """
@@ -155,6 +157,30 @@ class DNAHistoryGraph(object):
 
 	def areSiblings(self, threadA, threadB):
 		return self.eventGraph.testConstraint(threadA, threadB) and self.eventGraph.testConstraint(threadB, threadA) 
+	
+	##################################
+	## Convenient extension operations
+	##################################
+	
+	def interpolateSegment(self, child):
+		newSegment = self.newSegment()
+		if child.parent != None:
+			parent = child.parent
+			self.deleteBranch(parent, child)
+			self.createBranch(parent, newSegment)
+			self.createBranch(newSegment, child)
+		else:
+			self.createBranch(newSegment, child)
+		return newSegment
+	
+	def pullDown(self, parent, subsetOfChildren):
+		assert set(subsetOfChildren) <= parent.children
+		newSegment = self.newSegment()
+		self.createBranch(parent, newSegment)
+		for child in subsetOfChildren:
+			self.deleteBranch(parent, child)
+			self.createBranch(newSegment, child)
+		return newSegment
 
 	##################################
 	## Ambiguity
@@ -162,14 +188,11 @@ class DNAHistoryGraph(object):
 	def substitutionAmbiguity(self):
 		return sum(segment.substitutionAmbiguity() for segment in self.segments)
 
-	def coalescenceAmbiguity(self):
-		return sum(segment.coalescenceAmbiguity() for segment in self.segments)
-
 	def rearrangementAmbiguity(self):
-		return sum(segment.rearrangementAmbiguity() for segment in self.segments)
+		return sum([ x.rearrangementAmbiguity() for x in self.sides() ])
 	
 	def ambiguity(self):
-		return self.coalescenceAmbiguity() + self.substitutionAmbiguity() + self.rearrangementAmbiguity()
+		return self.substitutionAmbiguity() + self.rearrangementAmbiguity()
 
 	def isAVG(self):
 		return self.ambiguity() == 0
@@ -177,8 +200,12 @@ class DNAHistoryGraph(object):
 	##################################
 	## Cost
 	##################################
-	def substitutionCost(self, lowerBound=True):
-		return sum(X.substitutionCost(lowerBound) for X in self.segments)
+	
+	def lowerBoundSubstitutionCost(self):
+		return sum(X.lowerBoundSubstitutionCost() for X in self.segments)
+	
+	def upperBoundSubstitutionCost(self):
+		return sum(X.upperBoundSubstitutionCost() for X in self.segments)
 
 	def sides(self):
 		return sum([X.sides() for X in self.segments], [])
@@ -187,11 +214,30 @@ class DNAHistoryGraph(object):
 		return filter(lambda X: X.isModuleMaterial(), self.sides())
 
 	def modules(self):
-		return reduce(lambda X, Y: Y.modules(X), self._moduleSides(), (list(), set()))[0]
+		seen = set()
+		def fn(m):
+			for x in m.sides:
+				seen.add(x)
+			return m
+		return [ fn(Module(x)) for x in self._moduleSides() if x not in seen ]
+	
+	def lowerBoundRearrangementCost(self):
+		return sum(X.lowerBoundRearrangementCost() for X in self.modules())
+	
+	def upperBoundRearrangementCost(self):
+		return sum(X.upperBoundRearrangementCost() for X in self.modules())
+	
+	##################################
+	## Ancestry queries
+	##################################
+	def threadCmp(self, thread1, thread2):
+		"""
+		Return -1 if thread1 is ancestor of thread2, return 1 is thread is descendant of thread 2 else return 0 
+		(Note: this assumes strict relationships, i.e. if thread1 == thread2, returns 0)
+		"""
+		return self.eventGraph.compare(thread1, thread2)
 
-	def rearrangementCost(self, lowerBound=True):
-		return sum(X.rearrangementCost(lowerBound) for X in self.modules())
-
+	
 	##################################
 	## Ancestry queries
 	##################################
@@ -222,5 +268,7 @@ class DNAHistoryGraph(object):
 		assert all(X.left.bond.segment in self.segments for X in self.segments if X.left.bond is not None)
 		assert all(X.right.bond.segment in self.segments for X in self.segments if X.right.bond is not None)
 		assert self.eventGraph.validate()
-		assert all(X.validate(self) for X in self.modules())
+		assert self.lowerBoundSubstitutionCost() <= self.upperBoundSubstitutionCost()
+		assert self.lowerBoundRearrangementCost() <= self.upperBoundRearrangementCost()
+		#assert all(X.validate(self) for X in self.modules())
 		return True

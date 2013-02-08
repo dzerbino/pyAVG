@@ -48,10 +48,8 @@ class Side(object):
 		if self.segment.parent is not None:
 			if self.left:
 				return self.segment.parent.left
-			else:
-				return self.segment.parent.right
-		else:
-			return None
+			return self.segment.parent.right
+		return None
 
 	def children(self):
 		if self.left:
@@ -69,7 +67,7 @@ class Side(object):
 			return any(X._hasAttachedDescent() for X in self.children())
 
 	def isJunction(self):
-		return len(self.children()) > 2 and sum(X._hasAttachedDescent() for X in self.children()) > 2
+		return len(self.children()) >= 2 and sum(X._hasAttachedDescent() for X in self.children()) >= 2
 
 	def _ancestor2(self):
 		if self.bond is not None or self.parent() is None:
@@ -83,35 +81,29 @@ class Side(object):
 		else:
 			return self.parent()._ancestor2()
 
-	def _liftedPartners2(self):
-		""" Recursive element of liftedPartners """
+	def _liftedBonds2(self,):
 		if self.bond is None:
-			childLiftedBonds = [X._liftedPartners2() for X in self.children()]
-			liftingPartners = sum(childLiftedBonds, [])
-			if sum(len(X) > 0 for X in childLiftedBonds) > 1:
-				# Unattached bond junction!!
-				return [(X[0], True, X[2]) for X in liftingPartners]
-			else:
-				# Unattached bond on linear lifting path 
-				return liftingPartners
+			return self.liftedBonds()
 		else:
-			target = self.bond.ancestor()
-			return [(target, target is not self.ancestor().bond or _junctionsOnTheWay(target), self)]
-
-	def liftedPartners(self):
-		""" Returns list of tuples (lifted edge partner of self, is non trivial) """
-		if self.parent() is not None or self.bond is None:
-			return sum([X._liftedPartners2() for X in self.children()], [])
-		else:
-			# Special case for root nodes which are their own ancestors
-			return sum([X._liftedPartners2() for X in self.children()], [(self.bond.ancestor(), self.bond.segment.parent is not None)])
-
-	def nonTrivialLiftedPartners(self):
+			return set([ self ])
+	
+	def liftedBonds(self):
+		""" Returns set of labeled segments whose lifting ancestor is self"""
+		if len(self.children()) == 0:
+			return set()
+		return set(reduce(lambda x, y : x | y, [x._liftedBonds2() for x in self.children() ]))
+	
+	def nonTrivialLiftedBonds(self):
 		""" Return list of non trivial lifted edge partners """
-		if self.bond is not None:
-			return [X[0] for X in self.liftedPartners() if X[1]]
-		else:
-			return [X[0] for X in self.liftedPartners()]
+		def fn(x):
+			#Returns True if no unattached junction on path to ancestor, else false.
+			if x.parent() == x.ancestor():
+				return False
+			if x.parent().bond == None and x.parent().isJunction():
+				return True
+			return fn(x.parent())
+		return set([ x for x in self.liftedBonds() if x.bond.ancestor() != self.bond 
+				or fn(x) or fn(x.bond) ])
 
 	##############################
 	## Ambiguity
@@ -119,49 +111,36 @@ class Side(object):
 
 	def rearrangementAmbiguity(self):
 		# Note: self looping lifted edges are already reported twice so the formula is correct
-		return max(0, len(self.nonTrivialLiftedPartners()) - 1)
-
+		if self.bond == None and self.parent() != None:
+			return 0
+		return max(0, len(self.nonTrivialLiftedBonds()) - 1)
+	
 	##############################
 	## Modules
 	##############################
-	def _expandModule(self, module):
-		selfLoops = 0
-		module.sides.add(self)
-		if self.bond is not None and self.bond not in module.sides:
-			self.bond._expandModule(module)
-		for partner in self.nonTrivialLiftedPartners():
-			if partner is self:
-				selfLoops += 1
-			if partner < self:
-				module.nonTrivialLiftedEdges.append(liftedEdge.LiftedEdge((self, partner)))
-			if partner not in module.sides:
-				partner._expandModule(module)
-		for i in range(selfLoops / 2):
-			# Note: each self loop is reported twice in the list (one for each incidence)	
-			module.nonTrivialLiftedEdges.append(liftedEdge.LiftedEdge((self, self)))
-
-	def modules(self, data):
-		""" Returns a list of modules and a set of already visited sides """
-		modules, visited = data
-		if self in visited:
-			return data
-		else:
-			M = module.Module()
-			self._expandModule(M)
-			return modules + [M], visited | M.sides
-
+	
 	def isModuleMaterial(self):
-		return self.bond is not None or (self.segment.parent is None and len(self.liftedPartners()) > 1)
+		return self.bond != None or (self.parent() == None and len(self.liftedBonds()) > 0)
 
 	##############################
 	## Output
 	##############################
 
 	def dot(self):
-		if self.bond is not None and self.segment <= self.bond.segment:
-			return "%i -> %i [color=red, arrowhead=none]" % (id(self.segment), id(self.bond.segment)) 
-		else:
-			return ""
+		def fn(side):
+			if side.left:
+				return "normal"
+			return "inv"
+		l = []
+		if self.bond is not None: 
+			if self.segment <= self.bond.segment:
+				l.append("%i -> %i [color=red, dir=both, arrowtail=%s, arrowhead=%s]" % (id(self.segment), id(self.bond.segment), fn(self), fn(self.bond)))
+		if self.isModuleMaterial():
+			for descendant in self.nonTrivialLiftedBonds():
+				linkedAncestor = descendant.bond.ancestor()
+				if self.segment <= linkedAncestor.segment:
+					l.append("%i -> %i [color=magenta, dir=both, arrowtail=%s, arrowhead=%s]" % (id(self.segment), id(linkedAncestor.segment), fn(self), fn(linkedAncestor)))
+		return "\n".join(l)
 
 	##############################
 	## Validation

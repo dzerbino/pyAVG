@@ -1,30 +1,30 @@
 #!/usr/bin/env python
 
 import math
+import operator
 
 class Module(object):
-	def __init__(self, iter=[], iter2=[]):
-		self.sides = set(iter)
-		self.nonTrivialLiftedEdges = list(iter2)
-
-	def _hasNoUnattachedSides(self):
-		return not any(X.bond is None for X in self.sides)
-
-	def _hasALiftedEdgeForEveryTwoSides(self):
-		return len(self.sides) == 2 * len(self.nonTrivialLiftedEdges)
-
-	def _cycleDiscount(self):
-		if self._hasNoUnattachedSides() and self._hasALiftedEdgeForEveryTwoSides():
-			return 1
-		else:
-			return 0
+	def __init__(self, side):
+		self.sides = set()
+		self.freeRootNumber = 0
+		def expandModule(side):
+			if side != None and side not in self.sides:
+				assert side.isModuleMaterial()
+				self.sides.add(side)
+				expandModule(side.bond)
+				for descendant in side.nonTrivialLiftedBonds():
+					if descendant.bond != descendant.bond.ancestor():
+						expandModule(descendant.bond.ancestor())
+					else:
+						self.freeRootNumber += 1
+		expandModule(side)
 	
-	def rearrangementCost(self, lowerBound=True):
-		""" Returns lower bound (default) or upper bound to the rearrangement cost of a module """
-		if lowerBound:
-			return max(0, int(math.ceil(len(set(self.sides))* 0.5)) - 1)
-		else:
-			return len(self.nonTrivialLiftedEdges) - self._cycleDiscount()
+	def lowerBoundRearrangementCost(self):
+		#print "calc", self.freeRootNumber, len(self.sides), math.ceil((self.freeRootNumber + len(self.sides))/2.0) - 1
+		return math.ceil((self.freeRootNumber + len(self.sides))/2.0) - 1
+	
+	def upperBoundRearrangementCost(self):
+		return (sum([ len(x.nonTrivialLiftedBonds()) for x in self.sides ]) + self.freeRootNumber)/2 - reduce(operator.mul, [ len(x.nonTrivialLiftedBonds()) == 1 for x in self.sides ], 1)
 
 	def _liftedEdgeDot(self, liftedEdge):
 		sides = list(liftedEdge)
@@ -37,11 +37,9 @@ class Module(object):
 		return "\n".join(["node [color=blue]"] + map(lambda X: str(id(X.segment)), self.sides) + self._liftedEdgesDot() + ["node [color=black]"])
 
 	def isSimple(self):
-		# Test whether there are no duplicates in list of lifted edge nodes
-		sides = sum([list(X) for X in self.nonTrivialLiftedEdges], [])
-		return len(sides) == len(set(sides))
+		return reduce(operator.mul, [ len(x.nonTrivialLiftedBonds()) <= 1 for x in self.sides ], 1) == 1
 
 	def validate(self, graph):
 		assert all(X.bond is not None or X.parent() is None for X in self.sides)
-		assert self.rearrangementCost(lowerBound=True) <= self.rearrangementCost(lowerBound=False), "\n".join([graph.dot(), self.dot(), str(self.rearrangementCost(lowerBound=True)), str(self.rearrangementCost(lowerBound=False))])
+		assert self.lowerBoundRearrangementCost() <= self.upperBoundRearrangementCost(), "\n".join([graph.dot(), self.dot(), str(self.lowerBoundRearrangementCost()), str(self.upperBoundRearrangementCost())])
 		return True

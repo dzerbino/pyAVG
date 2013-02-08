@@ -162,6 +162,35 @@ class PartialOrderSet(set):
 		self.children[parent].remove(child)
 		if len(self.parents[child]) == 0:
 			self.roots.add(child)
+			
+	################################################
+	## Checking ancestry
+	################################################
+	def _ancestors(self, elem):
+		# Yes, I know, recursion would be nicer, but Python is shite with deep recursions
+		todo = [elem]
+		ancestors = list()
+		while len(todo) > 0:
+			elem = todo.pop()
+			if elem not in ancestors:
+				ancestors.extend(self.parents[elem])
+				todo.extend(self.parents[elem])
+		return ancestors
+
+	def _isAncestor(self, parent, child):
+		if self.depth[parent] >= self.depth[child]:
+			return False
+		else:
+			return parent in self._ancestors(child)
+
+	def compare(self, elemA, elemB):
+		""" Return -1 if elemA is ancestor of elemB, return 1 is elemA is descendant of elemB else return 0 """
+		if self._isAncestor(elemA, elemB):
+			return -1
+		if self._isAncestor(elemB, elemA):
+			return 1
+		else:
+			return 0
 
 	################################################
 	## Checking ancestry

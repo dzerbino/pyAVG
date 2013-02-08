@@ -5,7 +5,7 @@ import random
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from pyAVG.inputs.simulator import RandomHistory
 
-def deAVG(avg, removalDensity=.5, labelRemovalDensity=0, bondRemovalDensity=0):
+def deAVG(avg, removalDensity=0.0, labelRemovalDensity=0.5, bondRemovalDensity=1.0):
 	# Copy graph
 	graph = copy.copy(avg)
 
@@ -17,9 +17,9 @@ def deAVG(avg, removalDensity=.5, labelRemovalDensity=0, bondRemovalDensity=0):
 		else:
 			if random.random() < labelRemovalDensity:
 				segment.label = None
-			if random.random() < bondRemovalDensity:
+			if len(segment.left.liftedBonds()) > 0:
 				segment.left.deleteBond()
-			if random.random() < bondRemovalDensity:
+			if len(segment.right.liftedBonds()) > 0:
 				segment.right.deleteBond()
 
 	# Recompute the event graph from scratch
