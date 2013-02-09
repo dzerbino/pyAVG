@@ -35,75 +35,118 @@ class ExtensionMovesTest(unittest.TestCase):
             print "Graph now has substitution ambiguity", self.g.substitutionAmbiguity()
         self.assertEquals(self.g.substitutionAmbiguity(), 0)
         
-    def testCase1_random(self):
+    def testCases_random(self):
+        experimentNumber = 10
+        iterationNumber = 10
         last = time.time()
-        for i in range(1):
-            print 'EXPERIMENT', i, time.time() - last
+        results = []
+        experiment = 0
+        while experiment < experimentNumber:
+            print 'EXPERIMENT', experiment, time.time() - last
             last = time.time()
             
             #Create a random history
-            history = RandomHistory(3, 3)
+            history = RandomHistory(10, 3)
             avg = history.avg()
             
-            #Functions for reporting the results
-            def writeGraph(graph, file):
+            #Undo stuff in the first graph
+            baseGraph = deAVG(avg)
+            
+            if baseGraph.substitutionAmbiguity() == 0 or baseGraph.rearrangementAmbiguity() == 0:
+                continue
+            
+            def reportGraph(graph, graphName, iteration, step):
                 graph = copy.copy(graph)
                 graph.addFreeRoots()
-                fileHandle = open(file, 'w')
-                fileHandle.write("%s\n" % graph.dot())
-                fileHandle.close()
-                system("dot -Tpdf %s > %s.pdf" % (file, file))
-            
-            def reportGraph(graph, graphName):
-                print "%s has u %s, u_s %s, u_r %s, lbsc %i, ubsc %i, lbrc %i, ubrc %i" % (graphName, \
-                                                                                           graph.ambiguity(), \
-                                                                                           graph.substitutionAmbiguity(), \
-                                                                                           graph.rearrangementAmbiguity(), \
-                                                                                           graph.lowerBoundSubstitutionCost(), \
-                                                                                           graph.upperBoundSubstitutionCost(), \
-                                                                                           graph.lowerBoundRearrangementCost(), \
-                                                                                           graph.upperBoundRearrangementCost())
+                return { "graphName":graphName, 
+                                "experiment":experiment,
+                                "iteration":iteration, 
+                                "step":step, "ambiguity":graph.ambiguity(),
+                                "u_s":graph.substitutionAmbiguity(),
+                                "u_r":graph.rearrangementAmbiguity(),
+                                 "lbsc":graph.lowerBoundSubstitutionCost(),
+                                 "lbrc":int(graph.lowerBoundRearrangementCost()),
+                                 "ubsc":graph.upperBoundSubstitutionCost(),
+                                 "ubrc":int(graph.upperBoundRearrangementCost()),
+                                 "dot":("%s\n" % graph.dot()) }
             
             #Report the starting point
-            reportGraph(avg, "AVG")
-            writeGraph(avg, "history.dot")
+            results.append(reportGraph(avg, "H", "n/a", "n/a"))
             assert avg.validate()
             
-            #Undo stuff in the first graph
-            graph = deAVG(avg)
-            
             #Write stuff about G
-            writeGraph(graph, "graph.dot")
-            reportGraph(graph, "G")
-            assert graph.validate()
+            results.append(reportGraph(baseGraph, "G", "n/a", "n/a"))
+            assert baseGraph.validate()
             
-            #Undo the ambiguity
-            lBSC = graph.lowerBoundSubstitutionCost()
-            lBRC = graph.lowerBoundRearrangementCost()
-            while graph.ambiguity():
-                c1EL = listCase1(graph)
-                c2EL = listCase2(graph)
-                print "There are %s labeling extensions and %s bond extensions" % (len(c1EL), len(c2EL))
-                chosenExtension = random.choice(c1EL + c2EL)
-                chosenExtension.function(chosenExtension.args)
-                
-                reportGraph(graph, "G'")
-                assert graph.validate()
-                assert lBSC <= graph.lowerBoundSubstitutionCost()
-                assert lBRC <= graph.lowerBoundRearrangementCost()
+            for iteration in range(iterationNumber):
+                print "Starting iteration", iteration
+                graph = copy.copy(baseGraph)
+            
+                #Undo the ambiguity
                 lBSC = graph.lowerBoundSubstitutionCost()
                 lBRC = graph.lowerBoundRearrangementCost()
-            
-            #Report final AVG
-            reportGraph(graph, "H")
-            writeGraph(graph, "avg.dot")
-            assert graph.validate()
-            
-            assert graph.lowerBoundSubstitutionCost() == graph.upperBoundSubstitutionCost()
-            assert graph.lowerBoundRearrangementCost() == graph.upperBoundRearrangementCost()
-            
-            for m in graph.modules():
-                assert m.isSimple()
+                step = 1
+                while graph.ambiguity():
+                    results.append(reportGraph(graph, "G'", iteration, step))
+                    c1EL = listCase1(graph)
+                    c2EL = listCase2(graph)
+                    #print "There are %s labeling extensions and %s bond extensions" % (len(c1EL), len(c2EL))
+                    chosenExtension = random.choice(c1EL + c2EL)
+                    chosenExtension.function(chosenExtension.args)
+                    
+                    #assert graph.validate()
+                    #assert lBSC <= graph.lowerBoundSubstitutionCost()
+                    #assert lBRC <= graph.lowerBoundRearrangementCost()
+                    #lBSC = graph.lowerBoundSubstitutionCost()
+                    #lBRC = graph.lowerBoundRearrangementCost()
+                    
+                    step += 1
+                
+                #Report final AVG
+                results.append(reportGraph(graph, "G'", iteration, step))
+                assert graph.validate()
+                
+                assert graph.lowerBoundSubstitutionCost() == graph.upperBoundSubstitutionCost()
+                assert graph.lowerBoundRearrangementCost() == graph.upperBoundRearrangementCost()
+                for m in graph.modules():
+                    assert m.isSimple()
+                    
+            experiment += 1
+        #print "results", results
+        
+        ###Now format results for printing
+        
+        #Print table with following fields
+        #Experiment, s(H), r(H), lbsc(G), ubsc(G), lbrc(G), ubrc(G), min_G' s(G'),  min_G' r(G'), max_G' s(G'), max_G' r(G'), med_G' s(G'), med_G' s(G')
+        
+        print "Summary tables latex"
+        
+        def fn(statFn, term):
+            return statFn([ row[term] for row in gPRows ])
+        
+        def med(l):
+            l = l[:]
+            l.sort()
+            if len(l) % 2 == 1:
+                return l[len(l)/2]
+            return (l[len(l)/2] + l[len(l)/2 - 1])/2.0
+        
+        def getRows():
+            experimentResults = [ row for row in results if row["experiment"] == experiment ]
+            return [ row for row in experimentResults if row["graphName"] == "H" ][0], [ row for row in experimentResults if row["graphName"] == "G" ][0], [ row for row in experimentResults if row["graphName"] == "G'" and row["ambiguity"] == 0 ]
+        
+        fH = open("aggregateSubs.tex", 'w')
+        print "\t".join([ "experiment", "r(H)", "u_r(G)", "lbrc(G)", "ubrc(G)", "min_G' r(G')", "max_{G'} r(G')", "med_G'r(G')" ])
+        for experiment in range(experimentNumber):
+            historyRow, gRow, gPRows = getRows() 
+            print "\t".join([ str(i) for i in [ experiment, historyRow["lbrc"], gRow["u_r"], gRow["lbrc"], gRow["ubrc"], fn(min, "lbrc"), fn(max, "lbrc"), fn(med, "lbrc") ] ]) 
+        
+        print "\t".join([ "experiment", "s(H)", "u_s(G)", "lbsc(G)", "ubsc(G)", "s_{min}(G')", "max_G' s(G')", "med_G' s(G')", ])
+        for experiment in range(experimentNumber):
+            historyRow, gRow, gPRows = getRows() 
+            print "\t".join([ str(i) for i in [ experiment, historyRow["lbsc"], gRow["u_s"], gRow["lbsc"], gRow["ubsc"], fn(min, "lbsc"), fn(max, "lbsc"), fn(med, "lbsc")] ]) 
+
+        
 
 if __name__ == '__main__':
     unittest.main()

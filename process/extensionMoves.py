@@ -132,7 +132,7 @@ def getAllUnattachedSidesOnLineage(bottomSide):
 def getConcomittantPartners(bottomSide, sideToAttach, graph, eligibleSidesFn):
 	l = []
 	for x in eligibleSidesFn(bottomSide):
-		if x.bond == None and graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(x)) == 0:
+		if x.bond == None and graph.areSiblings(graph.sideThread(sideToAttach), graph.sideThread(x)): #graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(x)) == 0:
 			l.append((sideAttachment, x))
 		#if graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(x)) < 0 and \
 		#(x.parent() == None or graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(x.parent())) > 0):
