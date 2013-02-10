@@ -38,7 +38,7 @@ class ExtensionMovesTest(unittest.TestCase):
         
     def testCases_random(self):
         experimentNumber = 10
-        iterationNumber = 1000
+        iterationNumber = 100
         last = time.time()
         results = []
         experiment = 0

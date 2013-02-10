@@ -14,7 +14,7 @@ class Segment(object):
 	##########################
 	def __init__(self, sequence=None, parent = None, children = []):
 		if sequence is not None:
-			self.label = Label(sequence)
+			self.label = Label(self, sequence)
 		else:
 			self.label = None
 		self.children = set()

@@ -50,6 +50,30 @@ class DNAHistoryGraph(object):
 		self.segmentThreads[segment] = T
 		return segment
 
+	def deleteSegment(self, segment):
+		# Transitive extension of branches
+		parent = segment.parent
+		children = segment.children	
+		self.deleteBranch(parent, segment)
+		for child in children:
+			self.deleteBranch(segment, child)
+			self.createBranch(parent, child)
+		# Deletion of bonds
+		self.deleteBond(segment.left)
+		self.deleteBond(segment.right)
+		# Discarding record
+		self.segments.remove(segment)
+
+	def sideThread(self, side):
+		return self.segmentThreads[side.segment]
+
+	def interpolateSegment(self, parent, child):
+		segment = self.newSegment()
+		self.deleteBranch(parent, child)
+		self.createBranch(parent, segment)
+		self.createBranch(segment, parent)
+		return segment
+
 	##################################
 	## Online acyclicity verification
 	##################################
@@ -219,6 +243,16 @@ class DNAHistoryGraph(object):
 		return self.eventGraph.compare(thread1, thread2)
 
 	
+	##################################
+	## Ancestry queries
+	##################################
+	def threadCmp(self, thread1, thread2):
+		"""
+		Return -1 if thread1 is ancestor of thread2, return 1 is thread is descendant of thread 2 else return 0 
+		(Note: this assumes strict relationships, i.e. if thread1 == thread2, returns 0)
+		"""
+		self.eventGraph.compare(thread1, thread2)
+
 	##################################
 	## Output
 	##################################

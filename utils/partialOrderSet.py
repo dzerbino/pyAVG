@@ -193,6 +193,21 @@ class PartialOrderSet(set):
 			return 0
 
 	################################################
+	## Checking ancestry
+	################################################
+	def _isAncestor(self, parent, child):
+		return not self.testConstraint(child, parent)
+
+	def compare(self, elemA, elemB):
+		""" Return -1 if elemA is ancestor of elemB, return 1 is elemA is descendant of elemB else return 0 """
+		if self._isAncestor(elemA, elemB):
+			return -1
+		if self._isAncestor(elemB, elemA):
+			return 1
+		else:
+			return 0
+
+	################################################
 	## Validate
 	################################################
 	def _validateChildren(self):
@@ -245,6 +260,7 @@ class PartialOrderSet(set):
 
 	def dot(self):
 		return "\n".join(["digraph G {"] + [self.depthDot(X) for X in self.depth] + [self.dot2(X) for X in self.children] + ["}"]) 
+
 ###########################################
 ## Unit test
 ###########################################
@@ -253,13 +269,21 @@ def test_main():
 	pos.add(2)
 	pos.add(3)
 	pos.add(1)
+	pos.add(4)
+	pos.add(5)
 	pos.addConstraint(1,2)
 	pos.addConstraint(2,3)
 	pos.addConstraint(1,3)
+	pos.addConstraint(1,4)
 	try:
 		pos.addConstraint(3,1)
 	except RuntimeError:
 		assert pos.validate()
+		assert pos.compare(1,2) == -1
+		assert pos.compare(1,4) == -1
+		assert pos.compare(3,2) == 1
+		assert pos.compare(1,1) == 0
+		assert pos.compare(2,5) == 0
 		return
 	assert False
 	
