@@ -5,6 +5,7 @@ import copy
 
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from pyAVG.process.extensionMoves import listCase1, listCase2
+from pyAVG.utils.tex import *
 
 from pyAVG.inputs.simulator import RandomHistory
 from deAVG import deAVG
@@ -37,7 +38,7 @@ class ExtensionMovesTest(unittest.TestCase):
         
     def testCases_random(self):
         experimentNumber = 10
-        iterationNumber = 10
+        iterationNumber = 1000
         last = time.time()
         results = []
         experiment = 0
@@ -46,7 +47,7 @@ class ExtensionMovesTest(unittest.TestCase):
             last = time.time()
             
             #Create a random history
-            history = RandomHistory(10, 3)
+            history = RandomHistory(20, 3)
             avg = history.avg()
             
             #Undo stuff in the first graph
@@ -135,17 +136,30 @@ class ExtensionMovesTest(unittest.TestCase):
             experimentResults = [ row for row in results if row["experiment"] == experiment ]
             return [ row for row in experimentResults if row["graphName"] == "H" ][0], [ row for row in experimentResults if row["graphName"] == "G" ][0], [ row for row in experimentResults if row["graphName"] == "G'" and row["ambiguity"] == 0 ]
         
-        fH = open("aggregateSubs.tex", 'w')
-        print "\t".join([ "experiment", "r(H)", "u_r(G)", "lbrc(G)", "ubrc(G)", "min_G' r(G')", "max_{G'} r(G')", "med_G'r(G')" ])
+        rTable = [ [ "exp. #", "r(H)", "u_r(G)", "lbrc(G)", "ubrc(G)", "min_{G'} r(G')", "max_{G'} r(G')", "med_{G'} r(G')" ] ]
         for experiment in range(experimentNumber):
             historyRow, gRow, gPRows = getRows() 
-            print "\t".join([ str(i) for i in [ experiment, historyRow["lbrc"], gRow["u_r"], gRow["lbrc"], gRow["ubrc"], fn(min, "lbrc"), fn(max, "lbrc"), fn(med, "lbrc") ] ]) 
+            rTable.append([ str(i) for i in [ experiment, historyRow["lbrc"], gRow["u_r"], gRow["lbrc"], gRow["ubrc"], fn(min, "lbrc"), fn(max, "lbrc"), fn(med, "lbrc") ] ]) 
         
-        print "\t".join([ "experiment", "s(H)", "u_s(G)", "lbsc(G)", "ubsc(G)", "s_{min}(G')", "max_G' s(G')", "med_G' s(G')", ])
+        sTable = [ [ "exp. #", "s(H)", "u_s(G)", "lbsc(G)", "ubsc(G)", "min_{G'} s(G')", "max_{G'} s(G')", "med_{G'} s(G')" ] ]
         for experiment in range(experimentNumber):
             historyRow, gRow, gPRows = getRows() 
-            print "\t".join([ str(i) for i in [ experiment, historyRow["lbsc"], gRow["u_s"], gRow["lbsc"], gRow["ubsc"], fn(min, "lbsc"), fn(max, "lbsc"), fn(med, "lbsc")] ]) 
+            sTable.append([ str(i) for i in [ experiment, historyRow["lbsc"], gRow["u_s"], gRow["lbsc"], gRow["ubsc"], fn(min, "lbsc"), fn(max, "lbsc"), fn(med, "lbsc")] ]) 
 
+        def writeLatexTable(table, fileName):
+            fH = open(fileName, 'w')
+            writeDocumentPreliminaries(fH)
+            writePreliminaries(8, fH)
+            for line in table:
+                writeRow(line, fH)
+            writeEnd(fH, "", "")
+            writeDocumentEnd(fH)
+            fH.close()
+            
+        writeLatexTable(sTable, "aggregateSubs.tex")
+        writeLatexTable(rTable, "aggregateRearrangements.tex")
+        
+        
         
 
 if __name__ == '__main__':
