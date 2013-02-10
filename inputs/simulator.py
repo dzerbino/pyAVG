@@ -21,22 +21,34 @@ class HistoryBranch(object):
         ## Basics
         #########################################
 	def __init__(self):
-		self.children = []
+		self.child = None
 
 	def __str__(self):
-		return "\n".join([self._label()] + map(str, self.children))
+		if self.child is not None:
+			return "\n".join([self._label()] + [str(self.child)])
+		else:
+			return self._label()
 
         #########################################
         ## Stats
         #########################################
 	def _enumerate(self):
-		return [self] + sum((X._enumerate() for X in self.children), [])
+		if self.child is not None:
+			return [self] + self.child._enumerate()
+		else:
+			return [self]
 
 	def _cost(self):
-		return self._operationCost() + sum(X._cost() for X in self.children)
+		if self.child is not None:
+			return self._operationCost() + self.child._cost() 
+		else:
+			return self._operationCost()
 
 	def _subs(self):
-		return self._substitutionCost() + sum(X._subs() for X in self.children)
+		if self.child is not None:
+			return self._substitutionCost() + self.child._subs() 
+		else:
+			return self._substitutionCost()
 
         #########################################
         ## GraphViz representation
@@ -47,11 +59,17 @@ class HistoryBranch(object):
 
 	def _dot2(self):
 		""" GraphViz output """
-		return "\n".join([self._dotString()] + [X._dot2() for X in self.children])
+		if self.child is not None:
+			return "\n".join([self._dotString()] + [self.child._dot2()])
+		else:
+			return self._dotString()
 
 	def _dotString(self):
 		""" GraphViz output """
-		return "\n".join([self._dotLabel()] + [self._dotEdge(X) for X in self.children])
+		if self.child is not None:
+			return "\n".join([self._dotLabel(), self._dotEdge(self.child)])
+		else:
+			return self._dotLabel()
 
 	def _dotLabel(self):
 		label = str(self.genome)
@@ -82,7 +100,7 @@ class InitialBranch(HistoryBranch):
 
 	def threads(self):
 		T = [CircularSequenceThread(self.genome[0])]
-		return sum([X.threads(T) for X in self.children], []) + [T]
+		return self.child.threads(T) + [T]
 
 #########################################
 ## Transformation branches
@@ -94,26 +112,29 @@ class Operation(HistoryBranch):
 	def __init__(self, parent):
 		super(Operation, self).__init__()
 		self.parent = parent
-		parent.children.append(self)
+		parent.child = self
 		self.genome = self._product(parent.genome)
 
 	def threads(self, parentThreads):
 		T = self.modifyThreads(map(lambda X: X.childThread(), parentThreads))
-		return sum([X.threads(T) for X in self.children], []) + [T]
+		if self.child is not None:
+			return self.child.threads(T) + [T]
+		else:
+			return [T]
 
-class Identity(Operation):
+class Duplication(Operation):
 	"""Nothing happens"""
 	def __init__(self, parent):
-		super(Identity, self).__init__(parent)
+		super(Duplication, self).__init__(parent)
 
 	def _product(self, genome):
-		return genome
+		return genome + genome
 
 	def _label(self):
-		return "ID"
+		return "DUP\n" + str(self.genome)
 
 	def _dotBlurb(self):
-		return "ID"
+		return "DUP"
 
 	def _operationCost(self):
 		return 0
@@ -121,8 +142,14 @@ class Identity(Operation):
 	def _substitutionCost(self):
 		return 0
 
+	def _modifyThread(self, thread):
+		newThread = copy.copy(thread)
+		for i in range(len(thread)):
+			thread[i].segment.parent.createBranch(newThread[i].segment)
+		return newThread
+
 	def modifyThreads(self, threads):
-		return threads
+		return threads + map(self._modifyThread, threads)
 
 def complement(base):
 	if base == 'A':
@@ -290,14 +317,12 @@ def _addChildBranch(branch, choice, noDupes=False):
 		orientation = (random.random() > 0.5)
 		DCJ(branch, chrA, posA, chrB, posB, orientation)
 	else:
-		# Duplication
-		Identity(branch)
-		Identity(branch)
+		Duplication(branch)
 
 def _extendHistory(branch, counter, randomNums):
 	_addChildBranch(branch, randomNums[counter-1])
 	if counter > 1:
-		map(lambda X: _extendHistory(X, counter - 1, randomNums), branch.children)
+		_extendHistory(branch.child, counter - 1, randomNums)
 
 class RandomHistory(History):
 	def __init__(self, length, maxDepth):
@@ -311,10 +336,10 @@ class RandomHistory(History):
 #########################################
 def test_main():
 	history = RandomHistory(5,5)
-	print history
 	print history.dot()
 	avg = history.avg()
 	print avg.dot()
+	print history
 	assert avg.validate()
 	assert avg.isAVG(), avg.dot()
 	assert history.subs() == avg.lowerBoundSubstitutionCost(), "%s\t%s" % (history.subs(), avg.substitutionCost())
