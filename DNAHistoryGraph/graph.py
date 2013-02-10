@@ -242,17 +242,6 @@ class DNAHistoryGraph(object):
 		"""
 		return self.eventGraph.compare(thread1, thread2)
 
-	
-	##################################
-	## Ancestry queries
-	##################################
-	def threadCmp(self, thread1, thread2):
-		"""
-		Return -1 if thread1 is ancestor of thread2, return 1 is thread is descendant of thread 2 else return 0 
-		(Note: this assumes strict relationships, i.e. if thread1 == thread2, returns 0)
-		"""
-		self.eventGraph.compare(thread1, thread2)
-
 	##################################
 	## Output
 	##################################

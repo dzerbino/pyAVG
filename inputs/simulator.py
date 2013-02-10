@@ -311,8 +311,12 @@ def _addChildBranch(branch, choice, noDupes=False):
 		chrA = random.randrange(len(branch.genome))
 		posA = random.randrange(len(branch.genome[chrA]))
 		chrB = random.randrange(len(branch.genome))
+		while chrB == chrA and len(branch.genome[chrA]) == 1:
+			# Poor man's selection of proper values (cannot have a DCJ within a chr of length 1)
+			chrB = random.randrange(len(branch.genome))
 		posB = random.randrange(len(branch.genome[chrB]))
 		if chrA == chrB and posA == posB:
+			# Make sure both breakpoints are different
 			posB = (posA + 1) % len(branch.genome[chrA])
 		orientation = (random.random() > 0.5)
 		DCJ(branch, chrA, posA, chrB, posB, orientation)
@@ -335,17 +339,16 @@ class RandomHistory(History):
 ## Unit test
 #########################################
 def test_main():
-	history = RandomHistory(5,5)
-	print history.dot()
-	avg = history.avg()
-	print avg.dot()
-	print history
-	assert avg.validate()
-	assert avg.isAVG(), avg.dot()
-	assert history.subs() == avg.lowerBoundSubstitutionCost(), "%s\t%s" % (history.subs(), avg.substitutionCost())
-	assert history.cost() == avg.lowerBoundRearrangementCost(), "\n".join([str(history), avg.dot(), str(history.cost()), str(avg.rearrangementCost())])
-	assert avg.lowerBoundSubstitutionCost() == avg.upperBoundSubstitutionCost()
-	assert avg.lowerBoundRearrangementCost() == avg.upperBoundRearrangementCost()
+	for i in range(10):
+		print "Test %i" % i
+		history = RandomHistory(20,20)
+		avg = history.avg()
+		assert avg.validate()
+		assert avg.isAVG(), avg.dot()
+		assert history.subs() == avg.lowerBoundSubstitutionCost(), "%s\t%s" % (history.subs(), avg.substitutionCost())
+		assert history.cost() == avg.lowerBoundRearrangementCost(), "\n".join([str(history), avg.dot(), str(history.cost()), str(avg.rearrangementCost())])
+		assert avg.lowerBoundSubstitutionCost() == avg.upperBoundSubstitutionCost()
+		assert avg.lowerBoundRearrangementCost() == avg.upperBoundRearrangementCost()
 
 if __name__ == '__main__':
 	test_main()
