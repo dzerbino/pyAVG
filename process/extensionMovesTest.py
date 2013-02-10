@@ -39,7 +39,7 @@ class ExtensionMovesTest(unittest.TestCase):
         
     def testCases_random(self):
         experimentNumber = 20
-        iterationNumber = 1
+        iterationNumber = 1000
         last = time.time()
         results = []
         experiment = 0
@@ -48,7 +48,7 @@ class ExtensionMovesTest(unittest.TestCase):
             last = time.time()
             
             #Create a random history
-            history = RandomHistory(3, 3)
+            history = RandomHistory(20, 3)
             avg = history.avg()
             
             #Undo stuff in the first graph
