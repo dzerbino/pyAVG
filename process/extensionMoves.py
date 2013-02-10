@@ -77,7 +77,7 @@ def applyCase1(args):
 
 def sideAttachment(sideToAttach, otherSideToAttach, graph):
 	print "Doing side attachment"
-	assert graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(otherSideToAttach)) == 0
+	#assert graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(otherSideToAttach)) == 0
 	assert graph.areSiblings(graph.sideThread(sideToAttach), graph.sideThread(otherSideToAttach))
 	graph.createBond(sideToAttach, otherSideToAttach)
 

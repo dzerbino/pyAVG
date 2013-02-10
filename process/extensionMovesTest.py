@@ -2,6 +2,7 @@ import unittest
 import random
 import time
 import copy
+import os
 
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from pyAVG.process.extensionMoves import listCase1, listCase2
@@ -37,8 +38,8 @@ class ExtensionMovesTest(unittest.TestCase):
         self.assertEquals(self.g.substitutionAmbiguity(), 0)
         
     def testCases_random(self):
-        experimentNumber = 10
-        iterationNumber = 100
+        experimentNumber = 20
+        iterationNumber = 1
         last = time.time()
         results = []
         experiment = 0
@@ -47,7 +48,7 @@ class ExtensionMovesTest(unittest.TestCase):
             last = time.time()
             
             #Create a random history
-            history = RandomHistory(20, 3)
+            history = RandomHistory(3, 3)
             avg = history.avg()
             
             #Undo stuff in the first graph
@@ -123,7 +124,7 @@ class ExtensionMovesTest(unittest.TestCase):
         print "Summary tables latex"
         
         def fn(statFn, term):
-            return statFn([ row[term] for row in gPRows ])
+            return int(statFn([ row[term] for row in gPRows ]))
         
         def med(l):
             l = l[:]
@@ -136,31 +137,72 @@ class ExtensionMovesTest(unittest.TestCase):
             experimentResults = [ row for row in results if row["experiment"] == experiment ]
             return [ row for row in experimentResults if row["graphName"] == "H" ][0], [ row for row in experimentResults if row["graphName"] == "G" ][0], [ row for row in experimentResults if row["graphName"] == "G'" and row["ambiguity"] == 0 ]
         
-        rTable = [ [ "exp. #", "r(H)", "u_r(G)", "lbrc(G)", "ubrc(G)", "min_{G'} r(G')", "max_{G'} r(G')", "med_{G'} r(G')" ] ]
+        rTable = [ [ "exp.", "$r(H)$", "$u_r(G)$", "$lbrc(G)$", "$ubrc(G)$", "$r(G_{rmin}')$", "$r(G_{rmax}')$", "$r(G_{rmed}')$" ] ]
         for experiment in range(experimentNumber):
             historyRow, gRow, gPRows = getRows() 
             rTable.append([ str(i) for i in [ experiment, historyRow["lbrc"], gRow["u_r"], gRow["lbrc"], gRow["ubrc"], fn(min, "lbrc"), fn(max, "lbrc"), fn(med, "lbrc") ] ]) 
         
-        sTable = [ [ "exp. #", "s(H)", "u_s(G)", "lbsc(G)", "ubsc(G)", "min_{G'} s(G')", "max_{G'} s(G')", "med_{G'} s(G')" ] ]
+        sTable = [ [ "exp.", "$s(H)$", "$u_s(G)$", "$lbsc(G)$", "$ubsc(G)$", "$s(G_{smin}')$", "$s(G_{smax}')$", "$s(G_{smed}')$" ] ]
         for experiment in range(experimentNumber):
             historyRow, gRow, gPRows = getRows() 
             sTable.append([ str(i) for i in [ experiment, historyRow["lbsc"], gRow["u_s"], gRow["lbsc"], gRow["ubsc"], fn(min, "lbsc"), fn(max, "lbsc"), fn(med, "lbsc")] ]) 
 
-        def writeLatexTable(table, fileName):
-            fH = open(fileName, 'w')
+        def writeLatexTable(table, fileName, tableLabel, caption=""):
+            fH = open(os.path.join(outputDir, fileName), 'w')
             writeDocumentPreliminaries(fH)
             writePreliminaries(8, fH)
             for line in table:
                 writeRow(line, fH)
-            writeEnd(fH, "", "")
+            writeEnd(fH, tableLabel, caption)
             writeDocumentEnd(fH)
             fH.close()
             
-        writeLatexTable(sTable, "aggregateSubs.tex")
-        writeLatexTable(rTable, "aggregateRearrangements.tex")
+        outputDir = "results"
+        system("mkdir %s" % outputDir)
+            
+        writeLatexTable(sTable, "aggregateSubs.tex", "subsExpTable", "Results for substitution ambiguity and cost. Starting for an initial evolutionary history H we randomly removed elements to create G and then, by G-bounded extension operations, created a G-bounded AVG G'. Each row represents a separate initial evolutionary history. For each evolutionary history we created 1000 $G$-bounded AVG extensions. $G'_{smin}$, $G'_{smax}$ and $G'_{smax}$ are, respectively, the $G$-bounded extension with minimum, maximum and median substitution cost.")
+        writeLatexTable(rTable, "aggregateRearrangements.tex", "rearrangeExpTable", "Follows format of Table \\ref{subsExpTable}.")
         
+        #Write .csv files showing the change in the bounds during extension from G to G' during an iteration
         
+        def writeStepFile(argName):
+            fH = open(os.path.join(outputDir, "%s.%s.steps.csv" % (experiment, argName)), 'w')
+            experimentResults = [ row for row in results if row["experiment"] == experiment ]
+            historyRow = getRows()[0]
+            fH.write("%s\n" % historyRow[argName])
+            for it in xrange(iteration):
+                itRows = [ row for row in experimentResults if row["graphName"] == "G'" and row["iteration"] == it ]
+                fH.write("%s\n" % "\t".join([ str(row[argName]) for row in itRows]))
+            fH.close()
         
+        for experiment in range(experimentNumber):
+            writeStepFile("lbrc")
+            writeStepFile("ubrc")
+            writeStepFile("lbsc")
+            writeStepFile("ubsc")
+
+        #Write the dot files of the H, G and G_min, G_max and G_med for each experiment
+        for experiment in range(experimentNumber):
+            historyRow, gRow, gPRows = getRows() 
+            dirName = os.path.join(outputDir, "%s_graphViz" % experiment)
+            system("mkdir %s" % dirName)
+            def fn(statFn, term):
+                i = statFn([ row[term] for row in gPRows ])
+                return [ row for row in gPRows if row[term] == i ][0]
+            def writeDot(fileName, row):
+                fileName = os.path.join(dirName, fileName)
+                fH = open(fileName, 'w')
+                fH.write("%s\n" % row["dot"])
+                fH.close()
+                system("dot %s -Tpdf > %s.pdf" % (fileName, fileName))
+            writeDot("history", historyRow)
+            writeDot("g", gRow)
+            writeDot("gPRMin" , fn(min, "ubrc"))
+            writeDot("gPRMax", fn(max, "ubrc"))
+            writeDot("gPRMed", fn(med, "ubrc"))
+            writeDot("gPRMin" , fn(min, "ubsc"))
+            writeDot("gPRMax", fn(max, "ubsc"))
+            writeDot("gPRMed", fn(med, "ubsc"))
 
 if __name__ == '__main__':
     unittest.main()
