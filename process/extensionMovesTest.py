@@ -2,6 +2,7 @@ import unittest
 import random
 import time
 import copy
+import sys
 
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from pyAVG.process.extensionMoves import listCase1, listCase2
@@ -43,6 +44,7 @@ class ExtensionMovesTest(unittest.TestCase):
             
             #Create a random history
             history = RandomHistory(3, 3)
+	    print history.dot()
             avg = history.avg()
             
             #Functions for reporting the results
@@ -52,7 +54,7 @@ class ExtensionMovesTest(unittest.TestCase):
                 fileHandle = open(file, 'w')
                 fileHandle.write("%s\n" % graph.dot())
                 fileHandle.close()
-                system("dot -Tpdf %s > %s.pdf" % (file, file))
+                system("dot -Tjpg %s > %s.jpg" % (file, file))
             
             def reportGraph(graph, graphName):
                 print "%s has u %s, u_s %s, u_r %s, lbsc %i, ubsc %i, lbrc %i, ubrc %i" % (graphName, \
@@ -68,6 +70,7 @@ class ExtensionMovesTest(unittest.TestCase):
             reportGraph(avg, "AVG")
             writeGraph(avg, "history.dot")
             assert avg.validate()
+	    sys.exit(0)
             
             #Undo stuff in the first graph
             graph = deAVG(avg)

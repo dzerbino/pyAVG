@@ -5,7 +5,7 @@ import sys
 import random
 import copy
 
-from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
+from pyAVG.DNAHistoryGraph.evoHist import EvolutionaryHistory
 from pyAVG.DNAHistoryGraph.thread import CircularSequenceThread
 from pyAVG.DNAHistoryGraph.thread import CircularThread
 from pyAVG.DNAHistoryGraph.label import Label
@@ -38,12 +38,6 @@ class HistoryBranch(object):
 	def _subs(self):
 		return self._substitutionCost() + sum(X._subs() for X in self.children)
 
-	def _testPosition(self, position):
-		if len(self.children):
-			return any(child._testPosition(position) for child in self.children)
-		else:
-			return True
-
         #########################################
         ## GraphViz representation
         #########################################
@@ -75,7 +69,7 @@ class InitialBranch(HistoryBranch):
 
 	def __init__(self, length):
 		super(InitialBranch, self).__init__()
-		self.genome = "".join(random.choice([ "A", "C", "T", "G" ]) for X in range(1,length+ 1))
+		self.genome = ["".join(random.choice([ "A", "C", "T", "G" ]) for X in range(1,length+ 1))]
 
 	def _label(self):
 		return "INIT\n" + str(self.genome)
@@ -87,7 +81,7 @@ class InitialBranch(HistoryBranch):
 		return 0
 
 	def threads(self):
-		T = CircularSequenceThread(self.genome)
+		T = [CircularSequenceThread(self.genome[0])]
 		return sum([X.threads(T) for X in self.children], []) + [T]
 
 #########################################
@@ -103,21 +97,8 @@ class Operation(HistoryBranch):
 		parent.children.append(self)
 		self.genome = self._product(parent.genome)
 
-	def _operationCost(self):
-		return 1
-
-	def _substitutionCost(self):
-		return 0
-
-	def modifyThread(self, thread):
-		# Default, no action
-		'NO CHANGE'
-		return thread
-
-	def threads(self, parentThread):
-		T = self.modifyThread(parentThread.childThread())
-		assert all(X.segment.parent in parentThread.segments() for X in T)
-		assert all(X.segment.parent is None or X.segment in X.segment.parent.children for X in T)
+	def threads(self, parentThreads):
+		T = self.modifyThreads(map(lambda X: X.childThread(), parentThreads))
 		return sum([X.threads(T) for X in self.children], []) + [T]
 
 class Identity(Operation):
@@ -137,179 +118,119 @@ class Identity(Operation):
 	def _operationCost(self):
 		return 0
 
-	def _persists(self):
-		return True
+	def _substitutionCost(self):
+		return 0
+
+	def modifyThreads(self, threads):
+		return threads
 
 def complement(base):
 	if base == 'A':
 		return 'T'
-	else:
+	elif base == 'T':
 		return 'A'
+	elif base == 'C':
+		return 'G'
+	elif base == 'G':
+		return 'C'
+	else:
+		assert False, 'Unknown base for complementation: %s' % base
 
 def revcomp(sequence):
-	return reversed(map(complement, sequence))
+	return "".join(map(complement, reversed(sequence)))
 
-class Inversion(Operation):
-	"""Inversion branch"""
-	def __init__(self, parent, start, length):
-		self.start = start
-		self.length = length
-		super(Inversion, self).__init__(parent)
+def revcompThread(sequence):
+	return [X.opposite() for X in reversed(sequence)]
+
+class DCJ(Operation):
+	"""DCJ branch"""
+	def __init__(self, parent, chrA, posA, chrB, posB, orientation):
+		if chrA < chrB:
+			self.chrA = chrA
+			self.posA = posA
+			self.chrB = chrB
+			self.posB = posB
+		elif chrA > chrB:
+			self.chrA = chrB
+			self.posA = posB
+			self.chrB = chrA
+			self.posB = posA
+		else:
+			self.chrA = chrA
+			self.posA = min(posA, posB)
+			self.chrB = chrB
+			self.posB = max(posA, posB)
+		self.orientation = orientation
+		super(DCJ, self).__init__(parent)
+
+	def _operationCost(self):
+		return 1
+
+	def _substitutionCost(self):
+		return 0
 
 	def _product(self, genome):
-		if self.start + self.length < len(genome):
-			return genome[:self.start] + "".join(revcomp(genome[self.start:self.start+self.length])) + genome[self.start + self.length:]
+		newGenome = copy.copy(genome)
+		if self.chrA != self.chrB:
+			chrA = newGenome.pop(self.chrA)
+			chrB = newGenome.pop(self.chrB - 1)
+			if self.orientation:
+				newGenome.append(chrA[:self.posA] + chrB + chrA[self.posA:])
+			else:
+				newGenome.append(chrA[:self.posA] + revcomp(chrB) + chrA[self.posA:])
 		else:
-			return genome[:self.start + self.length - len(genome)] + "".join(revcomp(genome[self.start + self.length - len(genome):self.start])) + genome[self.start:]
+			chrA = newGenome.pop(self.chrA)
+			if self.orientation:
+				newGenome.append(chrA[:self.posA] + chrA[self.posB:])
+				assert len(newGenome[-1]) > 0
+				newGenome.append(chrA[self.posA:self.posB])
+				assert len(newGenome[-1]) > 0, self._label()
+			else:
+				newGenome.append(chrA[:self.posA] + revcomp(chrA[self.posA:self.posB]) + chrA[self.posB:])
+				assert len(newGenome[-1]) > 0
+		return newGenome
 
 	def _label(self):
-		return "INV\t%i\t%i\n%s" % (self.start, self.length, str(self.genome))
+		return "DCJ\t%i\t%i\t%i\t%i\t%s\n%s" % (self.chrA, self.posA, self.chrB, self.posB, str(self.orientation), str(self.genome))
 
 	def _dotBlurb(self):
-		str = "INV %i,%i" % (self.start, self.length)
-		if self._persists():
-			return str
-		else:
-			return "*" + str
+		return "DCJ %i,%i,%i,%i" % (self.chrA, self.posA, self.chrB, self.posB)
 
-	def _testPosition(self, position):
-		position = position % len(self.genome)
-		if len(self.children):
-			if position >= self.start and position < self.start + self.length:
-				newPosition = 2*self.start + self.length - position - 1
+	def modifyThreads(self, threads):
+		if self.chrA != self.chrB:
+			threadA = threads.pop(self.chrA)
+			threadB = threads.pop(self.chrB - 1)
+			if self.orientation:
+				threads.append(CircularThread(threadA[:self.posA] + threadB[:] + threadA[self.posA:]))
 			else:
-				newPosition = position
-			return any(child._testPosition(newPosition) for child in self.children)
+				threads.append(CircularThread(threadA[:self.posA] + revcompThread(threadB) + threadA[self.posA:]))
 		else:
-			return True
-
-	def _persists(self):
-		return (self._testPosition(self.start) and self._testPosition(self.start + self.length)) or (self._testPosition(self.start - 1) and self._testPosition(self.start + self.length - 1))
-
-	def modifyThread(self, thread):
-		return CircularThread(thread[:self.start] + [X.opposite() for X in reversed(thread[self.start:self.start + self.length])] + thread[self.start+self.length:])
+			threadA = threads.pop(self.chrA)
+			if self.orientation:
+				threads.append(CircularThread(threadA[:self.posA] + threadA[self.posB:]))
+				threads.append(CircularThread(threadA[self.posA:self.posB]))
+			else:
+				threads.append(CircularThread(threadA[:self.posA] + revcompThread(threadA[self.posA:self.posB]) + threadA[self.posB:]))
+		return threads
 		
-class Duplication(Operation):
-	"""Duplication branch"""
-	def __init__(self, parent, start, length):
-		self.start = start
-		self.length = length
-		super(Duplication, self).__init__(parent)
-
-	def _product(self, genome):
-		if self.start + self.length < len(genome):
-			return genome[:self.start] + genome[self.start:self.start+self.length] + genome[self.start:]
-		else:
-			return genome[:self.start] + genome[self.start:] + genome[:self.start+self.length-len(genome)] + genome[self.start:]
-
-	def _label(self):
-		return "DUP\t%i\t%i\n%s" % (self.start, self.length, str(self.genome))
-
-	def _dotBlurb(self):
-		str = "DUP %i,%i" % (self.start, self.length)
-		if self._persists():
-			return str
-		else:
-			return "*" + str
-
-	def _testPosition(self, position):
-		position = position % len(self.genome)
-		if len(self.children):
-			if position >= self.start and position < self.start + self.length:
-				return any(child._testPosition(position) for child in self.children) or any(child._testPosition(position + self.length) for child in self.children)
-			if position >= self.start + self.length:
-				return any(child._testPosition(position + self.length) for child in self.children)
-			else:
-				return any(child._testPosition(position) for child in self.children)
-		else:
-			return True
-
-	def _persists(self):
-		return any(self._testPosition(X) for X in range(self.start, self.start + self.length))
-
-	def modifyThread(self, T):
-		duplicate = copy.copy(T)
-		for traversalA, traversalB in zip(T[self.start:], duplicate[self.start:]):
-			traversalA.segment.parent.children.add(traversalB.segment)
-			traversalB.segment.parent = traversalA.segment.parent
-
-		for traversal in T[self.start + self.length:]:
-			if traversal.segment.parent is not None:
-				traversal.segment.parent.children.remove(traversal.segment)
-		
-		return CircularThread(T[:self.start + self.length] + duplicate[self.start:])
-
-class Deletion(Operation):
-	"""Deletion branch"""
-	def __init__(self, parent, start, length):
-		self.start = start
-		self.length = length
-		super(Deletion, self).__init__(parent)
-
-	def _product(self, genome):
-		if self.start + self.length < len(genome):
-			return genome[:self.start] + genome[self.start+self.length:]
-		else:
-			return genome[(self.start + self.length) - len(genome):self.start]
-
-	def _label(self):
-		return "DEL\t%i\t%i\n%s" % (self.start, self.length, str(self.genome))
-
-	def _dotBlurb(self):
-		str = "DEL %i,%i" % (self.start, self.length)
-		if self._persists():
-			return str
-		else:
-			return "*" + str
-
-	def _testPosition(self, position):
-		if len(self.genome) == 0:
-			return False
-		position = position % len(self.genome)
-		if position < self.start or position >= self.start + self.length:
-			if len(self.children):
-				if position >= self.start + self.length:
-					return any(child._testPosition(position - self.length) for child in self.children)
-				else:
-					return any(child._testPosition(position) for child in self.children)
-			else:
-				return True
-		else:
-			return False
-
-	def _persists(self):
-		return self._testPosition(self.start - 1) or self._testPosition(self.start + self.length)
-
-	def modifyThread(self, thread):
-		for traversal in thread[self.start:self.start + self.length]:
-			if traversal.segment.parent is not None:
-				traversal.segment.parent.children.remove(traversal.segment)
-		return CircularThread(thread[:self.start] + thread[self.start+self.length:])
-
 class Mutation(Operation):
 	"""Substituion branch"""
-	def __init__(self, parent, pos):
+	def __init__(self, parent, chr, pos):
+		self.chr = chr
 		self.pos = pos 
 		super(Mutation, self).__init__(parent)
 
 	def _product(self, genome):
-		return genome[:self.pos] + complement(genome[self.pos]) + genome[self.pos + 1:]
+		return genome[:self.chr] + [genome[self.chr][:self.pos] + complement(genome[self.chr][self.pos]) + genome[self.chr][self.pos + 1:]] + genome[self.chr + 1:]
 
 	def _mutationStr(self):
-		return self.parent.genome[self.pos] + ">" + self.genome[self.pos]
+		return self.parent.genome[self.chr][self.pos] + ">" + self.genome[self.chr][self.pos]
 
 	def _label(self):
-		return "MUT\t%i\t%s\n%s" % (self.pos, self._mutationStr(), str(self.genome))
+		return "MUT\t%i\t%i\t%s\n%s" % (self.chr, self.pos, self._mutationStr(), str(self.genome))
 
 	def _dotBlurb(self):
-		str = "MUT %i,%s" % (self.pos, _mutationStr(self.genome[self.pos]))
-		if self._persists():
-			return str
-		else:
-			return "*" + str
-
-	def _persists(self):
-		return self._testPosition(self.pos)
+		return "MUT %i,%i,%s" % (self.chr,self.pos, self._mutationStr())
 
 	def _operationCost(self):
 		return 0
@@ -317,9 +238,9 @@ class Mutation(Operation):
 	def _substitutionCost(self):
 		return 1
 
-	def modifyThread(self, thread):
-		thread[self.pos].segment.label = Label(thread[self.pos].segment, thread[self.pos].segment.label.complement())
-		return thread
+	def modifyThreads(self, threads):
+		threads[self.chr][self.pos].segment.label = Label(threads[self.chr][self.pos].segment, threads[self.chr][self.pos].segment.label.complement())
+		return threads
 
 #########################################
 ## Evolutionary History
@@ -347,56 +268,34 @@ class History(object):
 		return self.root._dot()
 
 	def avg(self):
-		return DNAHistoryGraph(S.segment for T in self.root.threads() for S in T)
+		return EvolutionaryHistory(self.root.threads())
 
 #########################################
 ## Random Evolutionary History
 #########################################
 def _addChildBranch(branch, choice, noDupes=False):
-	start = random.randrange(len(branch.genome))
-
-	if choice < 0.5:
-		Mutation(branch, start)
-	elif len(branch.genome) > start + 1 and choice < 0.8:
-		length = random.randrange(1, len(branch.genome) - start)
-		Inversion(branch, start, length)
-	elif len(branch.genome) > 1 and choice < 0.85 and not noDupes:
-		# Separate length prob for different operations (e.g. long distance duplications followed by deletions make things moot)
-		length = int(random.expovariate(0.1))
-		if length > len(branch.genome) - start - 1:
-			length = len(branch.genome) - start - 1
-		if length == 0:
-			length = 1
-		Duplication(branch, start, length)
-	elif len(branch.genome) > start + 1 and choice < 0.9:
-		length = int(random.expovariate(0.1))
-		if length > len(branch.genome) - start - 1:
-			length = len(branch.genome) - start - 1
-		if length == 0:
-			length = 1
-		Deletion(branch, start, length)
-	else:
-		Identity(branch)
-
-def _birthDeathModel():
-	choice = random.random()
-	if choice < BRANCHPROB:
-		return 2
-	else:
-		return 1
-
-def _extendHistory_Branch(branch, randomNum):
 	if len(branch.genome) == 0:
 		return
-	if _birthDeathModel() > 1:
-		# If more than one branch, then one must be identity, the other cannot dupe
-		Identity(branch)
-		_addChildBranch(branch, randomNum, noDupes=True)
+	elif choice < 0.5:
+		chr = random.randrange(len(branch.genome))
+		pos = random.randrange(len(branch.genome[chr]))
+		Mutation(branch, chr, pos)
+	elif choice < 0.9:
+		chrA = random.randrange(len(branch.genome))
+		posA = random.randrange(len(branch.genome[chrA]))
+		chrB = random.randrange(len(branch.genome))
+		posB = random.randrange(len(branch.genome[chrB]))
+		if chrA == chrB and posA == posB:
+			posB = (posA + 1) % len(branch.genome[chrA])
+		orientation = (random.random() > 0.5)
+		DCJ(branch, chrA, posA, chrB, posB, orientation)
 	else:
-		_addChildBranch(branch, randomNum)
+		# Duplication
+		Identity(branch)
+		Identity(branch)
 
 def _extendHistory(branch, counter, randomNums):
-	_extendHistory_Branch(branch, randomNums[counter-1])
+	_addChildBranch(branch, randomNums[counter-1])
 	if counter > 1:
 		map(lambda X: _extendHistory(X, counter - 1, randomNums), branch.children)
 
@@ -411,14 +310,17 @@ class RandomHistory(History):
 ## Unit test
 #########################################
 def test_main():
-	history = RandomHistory(10,10)
+	history = RandomHistory(5,5)
+	print history
+	print history.dot()
 	avg = history.avg()
+	print avg.dot()
 	assert avg.validate()
 	assert avg.isAVG(), avg.dot()
-	assert history.subs() == avg.substitutionCost(), "%s\t%s" % (history.subs(), avg.substitutionCost())
-	assert history.cost() == avg.rearrangementCost(), "\n".join([str(history), avg.dot(), str(history.cost()), str(avg.rearrangementCost())])
-	assert avg.substitutionCost(lowerBound=False) == avg.substitutionCost(lowerBound=True)
-	assert avg.rearrangementCost(lowerBound=False) == avg.rearrangementCost(lowerBound=True)
+	assert history.subs() == avg.lowerBoundSubstitutionCost(), "%s\t%s" % (history.subs(), avg.substitutionCost())
+	assert history.cost() == avg.lowerBoundRearrangementCost(), "\n".join([str(history), avg.dot(), str(history.cost()), str(avg.rearrangementCost())])
+	assert avg.lowerBoundSubstitutionCost() == avg.upperBoundSubstitutionCost()
+	assert avg.lowerBoundRearrangementCost() == avg.upperBoundRearrangementCost()
 
 if __name__ == '__main__':
 	test_main()
