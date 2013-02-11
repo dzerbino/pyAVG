@@ -32,12 +32,6 @@ class HistoryBranch(object):
         #########################################
         ## Stats
         #########################################
-	def _enumerate(self):
-		if self.child is not None:
-			return [self] + self.child._enumerate()
-		else:
-			return [self]
-
 	def _cost(self):
 		if self.child is not None:
 			return self._operationCost() + self.child._cost() 
@@ -284,9 +278,6 @@ class History(object):
 	def subs(self):
 		return self.root._subs()
 
-	def enumerate(self):
-		return self.root._enumerate()
-
 	def __str__(self):
 		return str(self.root)
 
@@ -300,13 +291,12 @@ class History(object):
 #########################################
 ## Random Evolutionary History
 #########################################
-def _addChildBranch(branch, choice, noDupes=False):
-	if len(branch.genome) == 0:
-		return
-	elif choice < 0.5:
+def _addChildBranch(branch, counter):
+	choice = random.random()
+	if choice < 0.5:
 		chr = random.randrange(len(branch.genome))
 		pos = random.randrange(len(branch.genome[chr]))
-		Mutation(branch, chr, pos)
+		return Mutation(branch, chr, pos)
 	elif choice < 0.9:
 		chrA = random.randrange(len(branch.genome))
 		posA = random.randrange(len(branch.genome[chrA]))
@@ -319,21 +309,14 @@ def _addChildBranch(branch, choice, noDupes=False):
 			# Make sure both breakpoints are different
 			posB = (posA + 1) % len(branch.genome[chrA])
 		orientation = (random.random() > 0.5)
-		DCJ(branch, chrA, posA, chrB, posB, orientation)
+		return DCJ(branch, chrA, posA, chrB, posB, orientation)
 	else:
-		Duplication(branch)
-
-def _extendHistory(branch, counter, randomNums):
-	_addChildBranch(branch, randomNums[counter-1])
-	if counter > 1:
-		_extendHistory(branch.child, counter - 1, randomNums)
+		return Duplication(branch)
 
 class RandomHistory(History):
 	def __init__(self, length, maxDepth):
-		randomNums = [random.random() for X in range(maxDepth)]
-		root = InitialBranch(length)
-		_extendHistory(root, maxDepth, randomNums)
-		super(RandomHistory, self).__init__(root)
+		super(RandomHistory, self).__init__(InitialBranch(length))
+		reduce(_addChildBranch, range(maxDepth), self.root)
 
 #########################################
 ## Unit test
