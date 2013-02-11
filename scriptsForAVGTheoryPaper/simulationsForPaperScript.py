@@ -17,8 +17,8 @@ in a directory called "results".
 """
 
 def main():
-    experimentNumber = 2
-    iterationNumber = 2
+    experimentNumber = 20
+    iterationNumber = 1000
     last = time.time()
     results = []
     experiment = 0
