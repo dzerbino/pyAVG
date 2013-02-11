@@ -17,8 +17,8 @@ in a directory called "results".
 """
 
 def main():
-    experimentNumber = 20
-    iterationNumber = 500
+    experimentNumber = 2
+    iterationNumber = 2
     last = time.time()
     results = []
     experiment = 0
@@ -139,9 +139,18 @@ def main():
         writeEnd(fH, tableLabel, caption)
         writeDocumentEnd(fH)
         fH.close()
-        
+    
     writeLatexTable(sTable, "aggregateSubs.tex", "subsExpTable", "Results for substitution ambiguity and cost. Starting for an initial evolutionary history H we randomly removed elements to create G and then, by G-bounded extension operations, created a G-bounded AVG G'. Each row represents a separate initial evolutionary history. For each evolutionary history we created 1000 $G$-bounded AVG extensions. $G'_{smin}$, $G'_{smax}$ and $G'_{smax}$ are, respectively, the $G$-bounded extension with minimum, maximum and median substitution cost.")
     writeLatexTable(rTable, "aggregateRearrangements.tex", "rearrangeExpTable", "Follows format of Table \\ref{subsExpTable}.")
+        
+    def writeCSVTable(table, fileName):
+        fH = open(os.path.join(outputDir, fileName), 'w')
+        for line in table:
+            fH.write("\t".join(line) + "\n")
+        fH.close()
+        
+    writeCSVTable(sTable, "aggregateSubs.csv")
+    writeCSVTable(rTable, "aggregateRearrangements.csv")
     
     print "Making step-wise .csv files"
     
