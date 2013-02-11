@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 class Label(object):
-	def __init__(self, segment, sequence=None):
+	def __init__(self, segment, sequence):
 		self.segment = segment
 		self.sequence = str(sequence)[0]
+		assert self.sequence != "N"
 
 	def __str__(self):
 		return self.sequence

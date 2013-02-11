@@ -62,7 +62,7 @@ class Segment(object):
 	def setLabel(self, sequence):
 		"""Safely set the label of a segment. #put in for future in which we move to storing lifted labels
 		"""
-		self.label = Label(sequence)
+		self.label = Label(self, sequence)
 		
 	def deleteLabel(self):
 		"""Safely delete the label of a segment. #put in for future in which we move to storing lifted labels
@@ -174,12 +174,6 @@ class Segment(object):
 			label = str(self.label)	
 		else:
 			label = ""
-		#if self.substitutionAmbiguity() > 0:
-		#	label += 'S'
-		#if self.left.rearrangementAmbiguity() > 0:
-		#	label += 'L'
-		#if self.right.rearrangementAmbiguity() > 0:
-		#	label += 'R'
 		lines = ['%i [label="%s"]' % (id(self), label)]
 		if self.parent is not None:
 			if (self.label != None and self.ancestor().label == self.label) or (self.label == None and len(self.liftedLabels().intersection(self.ancestor().nonTrivialLiftedLabels())) == 0): 
