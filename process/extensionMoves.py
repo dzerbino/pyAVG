@@ -134,9 +134,11 @@ def getConcomittantPartners(bottomSide, sideToAttach, graph, eligibleSidesFn):
 	for x in eligibleSidesFn(bottomSide):
 		if x.bond == None and graph.areSiblings(graph.sideThread(sideToAttach), graph.sideThread(x)): #graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(x)) == 0:
 			l.append((sideAttachment, x))
-		#if graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(x)) < 0 and \
-		#(x.parent() == None or graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(x.parent())) > 0):
-		#	l.append((branchAttachment, x))
+		if (x.parent() != None or (graph.sideThread(sideToAttach) != graph.sideThread(x) and graph.eventGraph.testConstraint(graph.sideThread(x), graph.sideThread(sideToAttach))) and \
+		graph.eventGraph.testConstraint()
+		graph.areSiblings(graph.sideThread(sideToAttach), graph.sideThread(x)): #This code is not fully general!
+			l.append((branchAttachment, x))
+		
 	return l
 
 def getPossibleBondsFromAttachedAncestor(rootSide, sideToAttach, graph, eligibleSidesFn):
@@ -173,6 +175,9 @@ def applyCase2(args):
 	if rootSide.bond == None:
 	    #As rootSide.bond == None, cheap hack to avoid ping-pongs
 		l.append((stubAttachment, None))
+		
+	
+	
 	#Add random connection to other sides.
 	
 	i = random.choice(l)

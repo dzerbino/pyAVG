@@ -21,6 +21,11 @@ def deAVG(avg, removalDensity=0.0, labelRemovalDensity=0.5, bondRemovalDensity=0
 				segment.left.deleteBond()
 			if random.random() < bondRemovalDensity: #len(segment.right.liftedBonds()) > 0:
 				segment.right.deleteBond()
+	
+	for segment in list(graph.segments): #Get rid of useless nodes
+		if segment.label == None and segment.left.bond == None and segment.right.bond == None and len(segment.children) == 1:
+			segment.disconnect()
+			graph.segments.remove(segment) 
 
 	# Recompute the event graph from scratch
 	graph.eventGraph, graph.segmentThreads = graph.threads()

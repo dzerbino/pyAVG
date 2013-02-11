@@ -17,9 +17,10 @@ in a directory called "results".
 """
 
 def main():
-    experimentNumber = 20
-    iterationNumber = 1000
-    last = time.time()
+    experimentNumber = 10
+    iterationNumber = 100
+    startTime = time.time()
+    last = startTime
     results = []
     experiment = 0
     
@@ -27,11 +28,8 @@ def main():
     system("mkdir %s" % outputDir)
     
     while experiment < experimentNumber:
-        print 'EXPERIMENT', experiment, time.time() - last
-        last = time.time()
-        
         #Create a random history
-        history = RandomHistory(10, 5)
+        history = RandomHistory(5, 5)
         avg = history.avg()
         
         #Undo stuff in the first graph
@@ -97,6 +95,8 @@ def main():
             #    assert m.isSimple()
                 
         experiment += 1
+        print 'EXPERIMENT', experiment, time.time() - last
+        last = time.time()
     #print "results", results
     
     ###Now format results for printing
@@ -143,34 +143,41 @@ def main():
     writeLatexTable(sTable, "aggregateSubs.tex", "subsExpTable", "Results for substitution ambiguity and cost. Starting for an initial evolutionary history H we randomly removed elements to create G and then, by G-bounded extension operations, created a G-bounded AVG G'. Each row represents a separate initial evolutionary history. For each evolutionary history we created 1000 $G$-bounded AVG extensions. $G'_{smin}$, $G'_{smax}$ and $G'_{smax}$ are, respectively, the $G$-bounded extension with minimum, maximum and median substitution cost.")
     writeLatexTable(rTable, "aggregateRearrangements.tex", "rearrangeExpTable", "Follows format of Table \\ref{subsExpTable}.")
         
-    def writeCSVTable(table, fileName):
+    def writeTSVTable(table, fileName):
         fH = open(os.path.join(outputDir, fileName), 'w')
         for line in table:
             fH.write("\t".join(line) + "\n")
         fH.close()
         
-    writeCSVTable(sTable, "aggregateSubs.csv")
-    writeCSVTable(rTable, "aggregateRearrangements.csv")
+    writeTSVTable(sTable, "aggregateSubs.tsv")
+    writeTSVTable(rTable, "aggregateRearrangements.tsv")
     
-    print "Making step-wise .csv files"
+    print "Making step-wise .tsv files"
     
-    #Write .csv files showing the change in the bounds during extension from G to G' during an iteration
+    #Write .tsv files showing the change in the bounds during extension from G to G' during an iteration
     
-    def writeStepFile(argName):
-        fH = open(os.path.join(outputDir, "%s.%s.steps.csv" % (experiment, argName)), 'w')
-        experimentResults = [ row for row in results if row["experiment"] == experiment ]
+    def writeStepFile(argName, fn):
+        fH = open(os.path.join(outputDir, "%s.%s.steps.tsv" % (experiment, argName)), 'w')
         historyRow = getRows()[0]
-        fH.write("%s\n" % historyRow[argName])
-        for it in xrange(iteration):
-            itRows = [ row for row in experimentResults if row["graphName"] == "G'" and row["iteration"] == it ]
-            fH.write("%s\n" % "\t".join([ str(row[argName]) for row in itRows]))
+        fH.write("#TSV showing %s value, original history had %s value \n" % (argName, fn(historyRow)))
+        experimentResults = [ row for row in results if row["experiment"] == experiment and row["graphName"] == "G'" ]
+        experimentResultsByIteration =  [ [] for i in range(iterationNumber) ]
+        for row in experimentResults:
+            experimentResultsByIteration[row["iteration"]].append(row)
+        #Print row for scale
+        fH.write("\t".join([ str(j) for j in range(max([ len(i) for i in experimentResultsByIteration ])) ]) + "\n")
+        for it in xrange(iterationNumber):
+            itRows = experimentResultsByIteration[it]
+            fH.write("%s\n" % "\t".join([ str(fn(row)) for row in itRows]))
         fH.close()
     
     for experiment in range(experimentNumber):
-        writeStepFile("lbrc")
-        writeStepFile("ubrc")
-        writeStepFile("lbsc")
-        writeStepFile("ubsc")
+        writeStepFile("lbrc", lambda row : row["lbrc"])
+        writeStepFile("ubrc", lambda row : row["ubrc"])
+        writeStepFile("ubrc-lbrc", lambda row : row["ubrc"] - row["lbrc"])
+        writeStepFile("lbsc", lambda row : row["lbsc"])
+        writeStepFile("ubsc", lambda row : row["ubsc"])
+        writeStepFile("lbsc-ubsc", lambda row : row["ubsc"] - row["lbsc"])
 
     print "Making graphviz plots"
 
@@ -194,6 +201,8 @@ def main():
         writeDot("gPRRMax", fn(max, "ubrc"))
         writeDot("gPRSMin" , fn(min, "ubsc"))
         writeDot("gPRSMax", fn(max, "ubsc"))
+        
+    print "Simulations took %s seconds" % (time.time() - startTime)
 
 if __name__ == '__main__':
     main()

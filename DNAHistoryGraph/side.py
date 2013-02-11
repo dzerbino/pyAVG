@@ -136,10 +136,14 @@ class Side(object):
 			if self <= self.bond:
 				l.append("%i -> %i [color=red, dir=both, arrowtail=%s, arrowhead=%s]" % (id(self.segment), id(self.bond.segment), fn(self), fn(self.bond)))
 		if self.isModuleMaterial():
-			for descendant in self.nonTrivialLiftedBonds():
+			nonTrivialLiftedBonds = self.nonTrivialLiftedBonds()
+			for descendant in self.liftedBonds():
 				linkedAncestor = descendant.bond.ancestor()
+				colour = "cyan"
+				if descendant in nonTrivialLiftedBonds:
+					colour = "magenta"
 				if self < linkedAncestor:
-					l.append("%i -> %i [color=magenta, dir=both, arrowtail=%s, arrowhead=%s]" % (id(self.segment), id(linkedAncestor.segment), fn(self), fn(linkedAncestor)))
+					l.append("%i -> %i [color=%s, dir=both, arrowtail=%s, arrowhead=%s, weight=0]" % (id(self.segment), id(linkedAncestor.segment), colour, fn(self), fn(linkedAncestor)))
 		return "\n".join(l)
 
 	##############################
