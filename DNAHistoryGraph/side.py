@@ -68,6 +68,10 @@ class Side(object):
 
 	def isJunction(self):
 		return len(self.children()) >= 2 and sum(X._hasAttachedDescent() for X in self.children()) >= 2
+	
+	def isBridge(self):
+		return not (self.bond == None or self.parent() == None or self in self.ancestor().nonTrivialLiftedBonds() or\
+		 len(self.ancestor().nonTrivialLiftedBonds()) == 0 or len(self.nonTrivialLiftedBonds()) == 0)
 
 	def _ancestor2(self):
 		if self.bond is not None or self.parent() is None:

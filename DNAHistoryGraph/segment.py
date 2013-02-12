@@ -129,6 +129,19 @@ class Segment(object):
 
 	def rearrangementAmbiguity(self):
 		return self.left.rearrangementAmbiguity() + self.right.rearrangementAmbiguity()
+	
+	def ambiguity(self):
+		return self.substitutionAmbiguity() + self.rearrangementAmbiguity()
+	
+	def isJunction(self):
+		if self.label == None:
+			return False
+		return len(self.liftedLabels()) > 1
+
+	def isBridge(self):
+		if self.label == None:
+			return False
+		return self.parent != None and self.ancestor().label != None and str(self.ancestor().label) == str(self.label) and len(self.nonTrivialLiftedLabels()) > 0 and len(self.ancestor().nonTrivialLiftedLabels()) > 0
 
 	##########################
 	## Cost

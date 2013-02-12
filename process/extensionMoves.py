@@ -129,14 +129,16 @@ def getAllUnattachedSidesOnLineage(bottomSide):
 		x = x.parent()
 	return l
 
+def branchIsConcomittantWithSide(sideToAttach, branch, graph):
+	return (branch.parent() == None or graph.eventGraph.testConstraint(graph.sideThread(branch.parent()), graph.sideThread(sideToAttach), True)) and \
+		graph.eventGraph.testConstraint(graph.sideThread(sideToAttach), graph.sideThread(branch), True)
+
 def getConcomittantPartners(bottomSide, sideToAttach, graph, eligibleSidesFn):
 	l = []
 	for x in eligibleSidesFn(bottomSide):
 		if x.bond == None and graph.areSiblings(graph.sideThread(sideToAttach), graph.sideThread(x)): #graph.threadCmp(graph.sideThread(sideToAttach), graph.sideThread(x)) == 0:
 			l.append((sideAttachment, x))
-		if (x.parent() != None or (graph.sideThread(sideToAttach) != graph.sideThread(x) and graph.eventGraph.testConstraint(graph.sideThread(x), graph.sideThread(sideToAttach))) and \
-		graph.eventGraph.testConstraint()
-		graph.areSiblings(graph.sideThread(sideToAttach), graph.sideThread(x)): #This code is not fully general!
+		if branchIsConcomittantWithSide(sideToAttach, x, graph):
 			l.append((branchAttachment, x))
 		
 	return l
@@ -157,6 +159,24 @@ def chooseRandomUnattachedSegmentOnSideLineage(bottomSide, graph):
 		x = graph.interpolateSegment(x.segment).getSide(x.left)
 	return x
 
+def addPossibleRandomBonds(sideToAttach, graph, l):
+	#This ensures we consider the possibility of every possible branch
+	while random.random() > 0.5 or len(l) == 0:
+		i = random.choice(xrange(len(graph.segments)+1))
+		if i == len(graph.segments): #Ignore ping-pongs
+			l.append((stubAttachment, None))
+		else:
+			continue
+			x = random.choice(graph.segments)
+			x = random.choice([ x.left, x.right])
+			if x.parent() == None or len((set([x]) | x.liftedBonds()) & x.ancestor().nonTrivialLiftedBonds()) > 0: #Avoid breaking a window
+				if x.bond != None or random.random() > 0.5:
+					if branchIsConcomittantWithSide(sideToAttach, x, graph):
+						l.append((branchAttachment, x))
+				elif graph.areSiblings(graph.sideThread(sideToAttach), graph.sideThread(x)):
+					l.append((sideAttachment, x))
+	return l
+
 def applyCase2(args):
 	rootSide, graph = args
 	assert rootSide.rearrangementAmbiguity() > 0
@@ -170,15 +190,9 @@ def applyCase2(args):
 	#Now proceed to attach chosen side
 	if len(sideToAttach.liftedBonds()) > 1:
 		l = getPossibleBondsFromAttachedDescendants(sideToAttach, graph, getAllUnattachedSidesOnLineage) + getPossibleBondsFromAttachedAncestor(rootSide, sideToAttach, graph, getAllUnattachedSidesOnLineage)
+		addPossibleRandomBonds(sideToAttach, graph, l)
 	else:
 		l = getPossibleBondsFromAttachedDescendants(sideToAttach, graph, getUnattachedJunctionSidesOnLineage) + getPossibleBondsFromAttachedAncestor(rootSide, sideToAttach, graph, getUnattachedPotentialBridgeAndJunctionSidesOnLineage)
-	if rootSide.bond == None:
-	    #As rootSide.bond == None, cheap hack to avoid ping-pongs
-		l.append((stubAttachment, None))
-		
-	
-	
-	#Add random connection to other sides.
 	
 	i = random.choice(l)
 	i[0](sideToAttach, i[1], graph)
@@ -192,16 +206,18 @@ def listCase2(graph):
 ###############################################
 
 def listCase3(graph):
-	return [ExtensionMove(applyCase3, (segment, graph)) for segment in filter(lambda X: X.coalescenceAmbiguity() > 0, graph.segments)]
+	return [ExtensionMove(applyCase3, (segment, graph)) for segment in filter(lambda X: X.ambiguity() > 0 and len(X.children) > 2, graph.segments)]
 
 def applyCase3(args):
 	segment, graph = args 
 	children = list(segment.children)
+	print "Creating pull down"
 	children.pop(random.randrange(len(children)))	
 	bridge = graph.newSegment()
 	for child in children:
 		graph.deleteBranch(segment, child)
 		graph.createBranch(bridge, child) 
 	graph.createBranch(segment, bridge)
+	#Needs to check that it hasn't created any non-minimal bonds
 
 detectors = [listCase1, listCase2, listCase3]

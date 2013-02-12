@@ -32,6 +32,28 @@ class GraphExtension(DNAHistoryGraph):
 		C = removeGReducibleBonds(self)
 		D = removeGReduciblePingPongs(self)
 		return A > 0 or B > 0 or C > 0 or D > 0
+	
+	##################################
+	#Remove non-minimal elements
+	##################################
+	
+	def removeNonMinimalElements(self):	
+		for segment in list(self.segments):
+			if segment.label != None and (not segment.isLabelJunction()) and (not segment.isLabelBridge()):
+				segment.deleteLabel()
+			
+			for side in (segment.left, segment.right): #Get rid of useless bonds
+				if side.bond != None and (not side.isJunction()) and (not side.bond.isJunction()) and (not side.isBridge()):
+					self.deleteBond(side)
+		
+		for segment in list(self.segments): #Get rid of useless nodes
+			if segment.label == None and segment.left.bond == None and segment.right.bond == None:
+				segment.disconnect()
+				self.segments.remove(segment) 
+		
+		# Recompute the event graph from scratch
+		self.eventGraph, self.segmentThreads = self.threads()
+		self.timeEventGraph()
 
 	##################################
 	## Output

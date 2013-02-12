@@ -4,7 +4,7 @@ import copy
 import os
 
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
-from pyAVG.process.extensionMoves import listCase1, listCase2
+from pyAVG.process.extensionMoves import listCase1, listCase2, listCase3
 from pyAVG.utils.tex import *
 
 from pyAVG.inputs.simulator import RandomHistory
@@ -17,8 +17,8 @@ in a directory called "results".
 """
 
 def main():
-    experimentNumber = 10
-    iterationNumber = 100
+    experimentNumber = 20
+    iterationNumber = 1000
     startTime = time.time()
     last = startTime
     results = []
@@ -29,11 +29,14 @@ def main():
     
     while experiment < experimentNumber:
         #Create a random history
-        history = RandomHistory(5, 5)
+        history = RandomHistory(10, 5)
         avg = history.avg()
         
         #Undo stuff in the first graph
         baseGraph = deAVG(avg)
+        assert avg.ambiguity() == 0
+        assert avg.lowerBoundRearrangementCost() == avg.upperBoundRearrangementCost()
+        assert baseGraph.lowerBoundRearrangementCost() <= avg.lowerBoundRearrangementCost()
         
         if baseGraph.substitutionAmbiguity() == 0 or baseGraph.rearrangementAmbiguity() == 0:
             continue
@@ -73,8 +76,9 @@ def main():
                 results.append(reportGraph(graph, "G'", iteration, step))
                 c1EL = listCase1(graph)
                 c2EL = listCase2(graph)
+                c3EL = listCase3(graph)
                 #print "There are %s labeling extensions and %s bond extensions" % (len(c1EL), len(c2EL))
-                chosenExtension = random.choice(c1EL + c2EL)
+                chosenExtension = random.choice(c1EL + c2EL + c3EL)
                 chosenExtension.function(chosenExtension.args)
                 
                 #assert graph.validate()
@@ -85,7 +89,18 @@ def main():
                 
                 step += 1
             
+            
             #Report final AVG
+            for segment in list(graph.segments): #Get rid of useless nodes
+                if segment.label == None and segment.left.bond == None and segment.right.bond == None:
+                    segment.disconnect()
+                    graph.segments.remove(segment) 
+        
+            # Recompute the event graph from scratch
+            graph.eventGraph, graph.segmentThreads = graph.threads()
+            graph.timeEventGraph()
+            
+            
             results.append(reportGraph(graph, "G'", iteration, step))
             #assert graph.validate()
             
