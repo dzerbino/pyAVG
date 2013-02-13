@@ -12,7 +12,7 @@ from pyAVG.DNAHistoryGraph.label import Label
 
 """Produces random evolutionary histories"""
 
-BRANCHPROB = 0.1
+MUT_PROB = 0.5
 """ Probability that a branch point occurs at a given node """
 
 class HistoryBranch(object):
@@ -116,24 +116,66 @@ class Operation(HistoryBranch):
 		else:
 			return [T]
 
-class Duplication(Operation):
-	"""Nothing happens"""
-	def __init__(self, parent):
-		super(Duplication, self).__init__(parent)
+class Mutation(Operation):
+	"""Substituion branch"""
+	def __init__(self, parent, chr, pos):
+		self.chr = chr
+		self.pos = pos 
+		super(Mutation, self).__init__(parent)
 
 	def _product(self, genome):
-		return genome + genome
+		if self.chr is not None:
+			return genome[:self.chr] + [genome[self.chr][:self.pos] + complement(genome[self.chr][self.pos]) + genome[self.chr][self.pos + 1:]] + genome[self.chr + 1:]
+		else:
+			return genome
+
+	def _mutationStr(self):
+		if self.chr is not None:
+			return self.parent.genome[self.chr][self.pos] + ">" + complement(self.parent.genome[self.chr][self.pos])
+		else:
+			return '.'
 
 	def _label(self):
-		return "DUP\n" + str(self.genome)
+		return "MUT\t%i\t%i\t%s\n%s" % (self.chr, self.pos, self._mutationStr(), str(self.genome))
 
 	def _dotBlurb(self):
-		return "DUP"
+		return "MUT %i,%i,%s" % (self.chr,self.pos, self._mutationStr())
 
 	def _operationCost(self):
 		return 0
 
 	def _substitutionCost(self):
+		if self.chr is not None:
+			return 1
+		else:
+			return 0
+
+	def modifyThreads(self, threads):
+		if self.chr is not None:
+			threads[self.chr][self.pos].segment.label = Label(threads[self.chr][self.pos].segment, threads[self.chr][self.pos].segment.label.complement())
+		return threads
+
+class Duplication(Mutation):
+	"""Nothing happens"""
+	def __init__(self, parent, chr, pos):
+		super(Duplication, self).__init__(parent, chr, pos)
+
+	def _product(self, genome):
+		return super(Duplication, self)._product(genome) + genome
+
+	def _label(self):
+		if self.chr is not None:
+			return '\n+\n'.join([super(Duplication, self)._label(), "DUP\n" + str(self.genome)])
+		else:
+			return "DUP\n" + str(self.genome)
+
+	def _dotBlurb(self):
+		if self.chr is not None:
+			return "MUT+DUP"
+		else:
+			return "DUP"
+
+	def _operationCost(self):
 		return 0
 
 	def _modifyThread(self, thread):
@@ -143,7 +185,8 @@ class Duplication(Operation):
 		return newThread
 
 	def modifyThreads(self, threads):
-		return threads + map(self._modifyThread, threads)
+		copies = map(self._modifyThread, threads)
+		return super(Duplication, self).modifyThreads(threads) + copies
 
 def complement(base):
 	if base == 'A':
@@ -163,9 +206,9 @@ def revcomp(sequence):
 def revcompThread(sequence):
 	return [X.opposite() for X in reversed(sequence)]
 
-class DCJ(Operation):
+class DCJ(Mutation):
 	"""DCJ branch"""
-	def __init__(self, parent, chrA, posA, chrB, posB, orientation):
+	def __init__(self, parent, chrA, posA, chrB, posB, orientation, chr, pos):
 		if chrA < chrB:
 			self.chrA = chrA
 			self.posA = posA
@@ -182,16 +225,13 @@ class DCJ(Operation):
 			self.chrB = chrB
 			self.posB = max(posA, posB)
 		self.orientation = orientation
-		super(DCJ, self).__init__(parent)
+		super(DCJ, self).__init__(parent, chr, pos)
 
 	def _operationCost(self):
 		return 1
 
-	def _substitutionCost(self):
-		return 0
-
 	def _product(self, genome):
-		newGenome = copy.copy(genome)
+		newGenome = copy.copy(super(DCJ, self)._product(genome))
 		if self.chrA != self.chrB:
 			chrA = newGenome.pop(self.chrA)
 			chrB = newGenome.pop(self.chrB - 1)
@@ -212,12 +252,19 @@ class DCJ(Operation):
 		return newGenome
 
 	def _label(self):
-		return "DCJ\t%i\t%i\t%i\t%i\t%s\n%s" % (self.chrA, self.posA, self.chrB, self.posB, str(self.orientation), str(self.genome))
+		if self.chr is None:
+			return "DCJ\t%i\t%i\t%i\t%i\t%s\n%s" % (self.chrA, self.posA, self.chrB, self.posB, str(self.orientation), str(self.genome))
+		else:
+			return "\n+\n".join([super(DCJ, self)._label(), "DCJ\t%i\t%i\t%i\t%i\t%s\n%s" % (self.chrA, self.posA, self.chrB, self.posB, str(self.orientation), str(self.genome))]) 
 
 	def _dotBlurb(self):
-		return "DCJ %i,%i,%i,%i" % (self.chrA, self.posA, self.chrB, self.posB)
+		if self.chr is None:
+			return "DCJ %i,%i,%i,%i" % (self.chrA, self.posA, self.chrB, self.posB)
+		else:
+			return ";".join([super(DCJ, self)._dotBlurb(), "DCJ %i,%i,%i,%i" % (self.chrA, self.posA, self.chrB, self.posB)])
 
 	def modifyThreads(self, threads):
+		super(DCJ, self).modifyThreads(threads)
 		if self.chrA != self.chrB:
 			threadA = threads.pop(self.chrA)
 			threadB = threads.pop(self.chrB - 1)
@@ -232,35 +279,6 @@ class DCJ(Operation):
 				threads.append(CircularThread(threadA[self.posA:self.posB]))
 			else:
 				threads.append(CircularThread(threadA[:self.posA] + revcompThread(threadA[self.posA:self.posB]) + threadA[self.posB:]))
-		return threads
-		
-class Mutation(Operation):
-	"""Substituion branch"""
-	def __init__(self, parent, chr, pos):
-		self.chr = chr
-		self.pos = pos 
-		super(Mutation, self).__init__(parent)
-
-	def _product(self, genome):
-		return genome[:self.chr] + [genome[self.chr][:self.pos] + complement(genome[self.chr][self.pos]) + genome[self.chr][self.pos + 1:]] + genome[self.chr + 1:]
-
-	def _mutationStr(self):
-		return self.parent.genome[self.chr][self.pos] + ">" + self.genome[self.chr][self.pos]
-
-	def _label(self):
-		return "MUT\t%i\t%i\t%s\n%s" % (self.chr, self.pos, self._mutationStr(), str(self.genome))
-
-	def _dotBlurb(self):
-		return "MUT %i,%i,%s" % (self.chr,self.pos, self._mutationStr())
-
-	def _operationCost(self):
-		return 0
-
-	def _substitutionCost(self):
-		return 1
-
-	def modifyThreads(self, threads):
-		threads[self.chr][self.pos].segment.label = Label(threads[self.chr][self.pos].segment, threads[self.chr][self.pos].segment.label.complement())
 		return threads
 
 #########################################
@@ -293,11 +311,14 @@ class History(object):
 #########################################
 def _addChildBranch(branch, counter):
 	choice = random.random()
-	if choice < 0.5:
+	if random.random() < MUT_PROB:
 		chr = random.randrange(len(branch.genome))
 		pos = random.randrange(len(branch.genome[chr]))
-		return Mutation(branch, chr, pos)
-	elif choice < 0.9:
+	else:
+		chr = None
+		pos = None
+
+	if choice < 0.9:
 		chrA = random.randrange(len(branch.genome))
 		posA = random.randrange(len(branch.genome[chrA]))
 		chrB = random.randrange(len(branch.genome))
@@ -309,9 +330,9 @@ def _addChildBranch(branch, counter):
 			# Make sure both breakpoints are different
 			posB = (posA + 1) % len(branch.genome[chrA])
 		orientation = (random.random() > 0.5)
-		return DCJ(branch, chrA, posA, chrB, posB, orientation)
+		return DCJ(branch, chrA, posA, chrB, posB, orientation, chr, pos)
 	else:
-		return Duplication(branch)
+		return Duplication(branch, chr, pos)
 
 class RandomHistory(History):
 	def __init__(self, length, maxDepth):
@@ -324,7 +345,7 @@ class RandomHistory(History):
 def test_main():
 	for i in range(10):
 		print "Test %i" % i
-		history = RandomHistory(20,20)
+		history = RandomHistory(5,5)
 		avg = history.avg()
 		assert avg.validate()
 		assert avg.isAVG(), avg.dot()
