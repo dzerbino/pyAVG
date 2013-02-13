@@ -184,15 +184,21 @@ class Segment(object):
 	##########################
 	def dot(self):
 		if self.label != None:
-			label = str(self.label)	
+			labelColour = { 'A':"greenyellow", 'C':'rosybrown', 'G':"powderblue", 'T':"plum" }[str(self.label)]
 		else:
-			label = ""
-		lines = ['%i [label="%s"]' % (id(self), label)]
+			labelColour = "white"
+		colour = "black"
+		if self.parent == None:
+			colour = "grey"
+		lines = ['%i [label="", style=filled, fillcolor=%s, width=0.25, height=0.25, color=%s, fixedsize=true]' % (id(self), labelColour, colour)]
 		if self.parent is not None:
 			if (self.label != None and self.ancestor().label == self.label) or (self.label == None and len(self.liftedLabels().intersection(self.ancestor().nonTrivialLiftedLabels())) == 0): 
 				lines.append('%i -> %i [color=green, weight=1000]' % (id(self.parent), id(self)))
 			else:
-				lines.append('%i -> %i [color=blue, weight=1000]' % (id(self.parent), id(self)))
+				if self.parent.parent == None:
+					lines.append('%i -> %i [color=lightblue, weight=1000]' % (id(self.parent), id(self)))
+				else:
+					lines.append('%i -> %i [color=blue, weight=1000]' % (id(self.parent), id(self)))
 		lines.append(self.left.dot())
 		if self.left.bond is not self.right:
 			lines.append(self.right.dot())

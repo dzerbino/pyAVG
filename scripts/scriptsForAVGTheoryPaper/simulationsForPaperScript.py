@@ -17,28 +17,50 @@ in a directory called "results".
 """
 
 def main():
-    experimentNumber = 20
-    iterationNumber = 1000
+    experimentNumber = 5
+    iterationNumber = 1
     startTime = time.time()
     last = startTime
     results = []
     experiment = 0
+    segmentNumber = 5
+    epochs = 5
     
     outputDir = "results"
     system("mkdir %s" % outputDir)
     
     while experiment < experimentNumber:
         #Create a random history
-        history = RandomHistory(10, 5)
+        history = RandomHistory(segmentNumber, epochs)
         avg = history.avg()
+        
+        def breakAllHomologousSides(side, graph):
+            if side.bond != None:
+                graph.deleteBond(side)
+            for child in side.children():
+                breakAllHomologousSides(child, graph)
+                
+        def homologousSidesHaveOnlyTrivialLifts(side):
+            if side.bond != None and len(side.nonTrivialLiftedBonds()) > 0:
+                return False
+            for child in side.children():
+                if not homologousSidesHaveOnlyTrivialLifts(child):
+                    return False
+            return True
+        
+        sidesToBreak = [ side for side in avg.sides() if side.parent() == None and homologousSidesHaveOnlyTrivialLifts(side) ]
+        if len(sidesToBreak) > 0:
+            breakAllHomologousSides(sidesToBreak[0], avg)        
         
         #Undo stuff in the first graph
         baseGraph = deAVG(avg)
-        assert avg.ambiguity() == 0
+        assert avg.substitutionAmbiguity() == 0 
+        assert avg.rearrangementAmbiguity() == 0
         assert avg.lowerBoundRearrangementCost() == avg.upperBoundRearrangementCost()
         assert baseGraph.lowerBoundRearrangementCost() <= avg.lowerBoundRearrangementCost()
         
-        if baseGraph.substitutionAmbiguity() == 0 or baseGraph.rearrangementAmbiguity() == 0:
+        #Selection of histories with what we want
+        if avg.lowerBoundRearrangementCost() == 0 or avg.lowerBoundSubstitutionCost() == 0 or baseGraph.substitutionAmbiguity() == 0 or baseGraph.rearrangementAmbiguity() == 0 or len([ segment for segment in baseGraph.segments if len(segment.children) == 0 ]) != 4*segmentNumber:
             continue
         
         def reportGraph(graph, graphName, iteration, step):
