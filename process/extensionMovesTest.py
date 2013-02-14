@@ -10,7 +10,6 @@ from pyAVG.utils.tex import *
 
 from pyAVG.inputs.simulator import RandomHistory
 from deAVG import deAVG
-from sonLib.bioio import system
 import extensionMoves
 
 class ExtensionMovesTest(unittest.TestCase):

@@ -2,6 +2,7 @@ import random
 import time
 import copy
 import os
+import subprocess
 
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
 from pyAVG.process.extensionMoves import listCase1, listCase2, listCase3
@@ -9,22 +10,27 @@ from pyAVG.utils.tex import *
 
 from pyAVG.inputs.simulator import RandomHistory
 from pyAVG.process.deAVG import deAVG
-from sonLib.bioio import system
 import pyAVG.process.extensionMoves
 
 """Script generates results for "A Unifying Parsimony Model for Genome Evolution"
 in a directory called "results".
 """
 
+def system(command):
+    sts = subprocess.call(command, shell=True, bufsize=-1, stdout=sys.stdout, stderr=sys.stderr)
+    if sts != 0:
+        raise RuntimeError("Command: %s exited with non-zero status %i" % (command, sts))
+    return sts
+
 def main():
-    experimentNumber = 5
-    iterationNumber = 1000
+    experimentNumber = 10
+    iterationNumber = 2000
     startTime = time.time()
     last = startTime
     results = []
     experiment = 0
     segmentNumber = 5
-    epochs = 5
+    epochs = 4
     
     outputDir = "results"
     system("mkdir %s" % outputDir)
@@ -60,8 +66,10 @@ def main():
         assert baseGraph.lowerBoundRearrangementCost() <= avg.lowerBoundRearrangementCost()
         
         #Selection of histories with what we want
-        if avg.lowerBoundRearrangementCost() == 0 or avg.lowerBoundSubstitutionCost() == 0 or baseGraph.substitutionAmbiguity() == 0 or baseGraph.rearrangementAmbiguity() == 0 or len([ segment for segment in baseGraph.segments if len(segment.children) == 0 ]) != 4*segmentNumber:
+        if avg.lowerBoundRearrangementCost() == 0 or avg.lowerBoundSubstitutionCost() == 0 or baseGraph.substitutionAmbiguity() == 0 or baseGraph.rearrangementAmbiguity() == 0 or len([ segment for segment in baseGraph.segments if len(segment.children) == 0 ]) <= 3*segmentNumber:
             continue
+        
+        print avg.lowerBoundRearrangementCost(), avg.lowerBoundSubstitutionCost(), baseGraph.substitutionAmbiguity(), baseGraph.rearrangementAmbiguity(), len([ segment for segment in baseGraph.segments if len(segment.children) == 0 ]), 2*segmentNumber
         
         def reportGraph(graph, graphName, iteration, step):
             graph = copy.copy(graph)
