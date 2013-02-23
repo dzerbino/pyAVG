@@ -98,7 +98,7 @@ def main():
         bestHistoryCost = baseGraph.upperBoundRearrangementCost()
         iteration, found = 0, 0
         while iteration < iterationNumber or found == 0:
-            iteration += iterationNumber
+            iteration += 1
             print "Starting iteration", iteration
             graph = copy.copy(baseGraph)
         
