@@ -2,6 +2,7 @@ import random
 import time
 import copy
 import os
+import sys
 import subprocess
 
 from pyAVG.DNAHistoryGraph.graph import DNAHistoryGraph
@@ -23,8 +24,8 @@ def system(command):
     return sts
 
 def main():
-    experimentNumber = 10
-    iterationNumber = 2000
+    experimentNumber = 5
+    iterationNumber = 10000
     startTime = time.time()
     last = startTime
     results = []
@@ -94,7 +95,10 @@ def main():
         results.append(reportGraph(baseGraph, "G", "n/a", "n/a"))
         #assert baseGraph.validate()
         
-        for iteration in range(iterationNumber):
+        bestHistoryCost = baseGraph.upperBoundRearrangementCost()
+        iteration, found = 0, 0
+        while iteration < iterationNumber or found == 0:
+            iteration += iterationNumber
             print "Starting iteration", iteration
             graph = copy.copy(baseGraph)
         
@@ -102,8 +106,9 @@ def main():
             #lBSC = graph.lowerBoundSubstitutionCost()
             #lBRC = graph.lowerBoundRearrangementCost()
             step = 1
-            while graph.ambiguity():
-                results.append(reportGraph(graph, "G'", iteration, step))
+            currentResults = []
+            while graph.ambiguity() and graph.lowerBoundRearrangementCost() <= bestHistoryCost:
+                currentResults.append(reportGraph(graph, "G'", found, step))
                 c1EL = listCase1(graph)
                 c2EL = listCase2(graph)
                 c3EL = listCase3(graph)
@@ -119,25 +124,29 @@ def main():
                 
                 step += 1
             
+            if graph.lowerBoundRearrangementCost() <= bestHistoryCost:
+                results = results + currentResults
+                assert graph.ambiguity() == 0
+                #Report final AVG
+                for segment in list(graph.segments): #Get rid of useless nodes
+                    if segment.label == None and segment.left.bond == None and segment.right.bond == None:
+                        segment.disconnect()
+                        graph.segments.remove(segment) 
             
-            #Report final AVG
-            for segment in list(graph.segments): #Get rid of useless nodes
-                if segment.label == None and segment.left.bond == None and segment.right.bond == None:
-                    segment.disconnect()
-                    graph.segments.remove(segment) 
-        
-            # Recompute the event graph from scratch
-            graph.eventGraph, graph.segmentThreads = graph.threads()
-            graph.timeEventGraph()
-            
-            
-            results.append(reportGraph(graph, "G'", iteration, step))
-            #assert graph.validate()
-            
-            #assert graph.lowerBoundSubstitutionCost() == graph.upperBoundSubstitutionCost()
-            #assert graph.lowerBoundRearrangementCost() == graph.upperBoundRearrangementCost()
-            #for m in graph.modules():
-            #    assert m.isSimple()
+                # Recompute the event graph from scratch
+                graph.eventGraph, graph.segmentThreads = graph.threads()
+                graph.timeEventGraph()
+                
+                
+                results.append(reportGraph(graph, "G'", found, step))
+                found += 1
+                #assert graph.validate()
+                
+                #assert graph.lowerBoundSubstitutionCost() == graph.upperBoundSubstitutionCost()
+                #assert graph.lowerBoundRearrangementCost() == graph.upperBoundRearrangementCost()
+                #for m in graph.modules():
+                #    assert m.isSimple()
+                bestHistoryCost = graph.lowerBoundRearrangementCost()
                 
         experiment += 1
         print 'EXPERIMENT', experiment, time.time() - last
