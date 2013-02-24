@@ -14,23 +14,21 @@ def system(command):
 
 def main():
     experimentNumber=5
+    outputDir = "results"
     print "Making graphviz plots"
 
     #Write the dot files of the H, G and G_min, G_max and G_med for each experiment
     for experiment in range(experimentNumber):
-        historyRow, gRow, gPRows = getRows() 
         dirName = os.path.join(outputDir, "%s_graphViz" % experiment)
-        def writeDotPDF(fileName, row):
+        def writeDot(fileName):
             fileName = os.path.join(dirName, fileName)
             system("dot %s -Tpdf > %s.pdf" % (fileName, fileName))
-        writeDot("history", historyRow)
-        writeDot("g", gRow)
-        writeDot("gPRRMin" , fn(min, "ubrc"))
-        writeDot("gPRRMax", fn(max, "ubrc"))
-        writeDot("gPRSMin" , fn(min, "ubsc"))
-        writeDot("gPRSMax", fn(max, "ubsc"))
-        
-    print "Plots took %s seconds" % (time.time() - startTime)
-
+        writeDot("history")
+        writeDot("g")
+        writeDot("gPRRMin")
+        writeDot("gPRRMax")
+        writeDot("gPRSMin")
+        writeDot("gPRSMax")
+     
 if __name__ == '__main__':
     main()

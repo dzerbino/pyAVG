@@ -25,7 +25,7 @@ def system(command):
 
 def main():
     experimentNumber = 5
-    iterationNumber = 20000
+    iterationNumber = 20
     startTime = time.time()
     last = startTime
     results = []
