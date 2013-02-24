@@ -25,7 +25,7 @@ def system(command):
 
 def main():
     experimentNumber = 5
-    iterationNumber = 10000
+    iterationNumber = 20000
     startTime = time.time()
     last = startTime
     results = []
@@ -174,12 +174,12 @@ def main():
         experimentResults = [ row for row in results if row["experiment"] == experiment ]
         return [ row for row in experimentResults if row["graphName"] == "H" ][0], [ row for row in experimentResults if row["graphName"] == "G" ][0], [ row for row in experimentResults if row["graphName"] == "G'" and row["ambiguity"] == 0 ]
     
-    rTable = [ [ "exp.", "$r(H)$", "$u_r(G)$", "$lbrc(G)$", "$ubrc(G)$", "$r(G_{rmin}')$", "$r(G_{rmax}')$", "$r(G_{rmed}')$" ] ]
+    rTable = [ [ "exp.", "$r(H)$", "$u_r(G)$", "$r_l(G)$", "$r_u(G)$", "$r(G_{rmin}')$", "$r(G_{rmax}')$", "$r(G_{rmed}')$" ] ]
     for experiment in range(experimentNumber):
         historyRow, gRow, gPRows = getRows() 
         rTable.append([ str(i) for i in [ experiment, historyRow["lbrc"], gRow["u_r"], gRow["lbrc"], gRow["ubrc"], fn(min, "lbrc"), fn(max, "lbrc"), fn(med, "lbrc") ] ]) 
     
-    sTable = [ [ "exp.", "$s(H)$", "$u_s(G)$", "$lbsc(G)$", "$ubsc(G)$", "$s(G_{smin}')$", "$s(G_{smax}')$", "$s(G_{smed}')$" ] ]
+    sTable = [ [ "exp.", "$s(H)$", "$u_s(G)$", "$s_l(G)$", "$s_u(G)$", "$s(G_{smin}')$", "$s(G_{smax}')$", "$s(G_{smed}')$" ] ]
     for experiment in range(experimentNumber):
         historyRow, gRow, gPRows = getRows() 
         sTable.append([ str(i) for i in [ experiment, historyRow["lbsc"], gRow["u_s"], gRow["lbsc"], gRow["ubsc"], fn(min, "lbsc"), fn(max, "lbsc"), fn(med, "lbsc")] ]) 
@@ -248,7 +248,7 @@ def main():
             fH = open(fileName, 'w')
             fH.write("%s\n" % row["dot"])
             fH.close()
-            system("dot %s -Tpdf > %s.pdf" % (fileName, fileName))
+            #system("dot %s -Tpdf > %s.pdf" % (fileName, fileName))
         writeDot("history", historyRow)
         writeDot("g", gRow)
         writeDot("gPRRMin" , fn(min, "ubrc"))
