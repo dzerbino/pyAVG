@@ -25,7 +25,7 @@ def system(command):
 
 def main():
     experimentNumber = 5
-    iterationNumber = 2
+    iterationNumber = 20000
     startTime = time.time()
     last = startTime
     results = []
@@ -248,7 +248,7 @@ def main():
             fH = open(fileName, 'w')
             fH.write("%s\n" % row["dot"])
             fH.close()
-            system("dot %s -Tpdf > %s.pdf" % (fileName, fileName))
+            #system("dot %s -Tpdf > %s.pdf" % (fileName, fileName))
         writeDot("history", historyRow)
         writeDot("g", gRow)
         writeDot("gPRRMin" , fn(min, "ubrc"))
