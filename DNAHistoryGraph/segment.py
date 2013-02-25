@@ -193,15 +193,15 @@ class Segment(object):
 		lines = ['%i [label="", style=filled, fillcolor=%s, width=0.25, height=0.25, color=%s, fixedsize=true]' % (id(self), labelColour, colour)]
 		if self.parent is not None:
 			if (self.label != None and self.ancestor().label == self.label) or (self.label == None and len(self.liftedLabels().intersection(self.ancestor().nonTrivialLiftedLabels())) == 0): 
-				lines.append('%i -> %i [color=green, weight=1000]' % (id(self.parent), id(self)))
+				lines.append('%i -> %i [color=grey, style=dashed, weight=1000]' % (id(self.parent), id(self)))
 			else:
 				if self.parent.parent == None:
-					lines.append('%i -> %i [color=lightblue, weight=1000]' % (id(self.parent), id(self)))
+					lines.append('%i -> %i [color=red, style=dashed, weight=1000]' % (id(self.parent), id(self)))
 				else:
-					lines.append('%i -> %i [color=blue, weight=1000]' % (id(self.parent), id(self)))
+					lines.append('%i -> %i [color=red, style=dashed, weight=1000]' % (id(self.parent), id(self)))
 		lines.append(self.left.dot())
-		if self.left.bond is not self.right:
-			lines.append(self.right.dot())
+		#if self.left.bond is not self.right:
+		lines.append(self.right.dot())
 		return "\n".join(lines)	
 		
 	

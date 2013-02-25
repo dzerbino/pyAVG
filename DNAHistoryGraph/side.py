@@ -137,8 +137,8 @@ class Side(object):
 			return "inv"
 		l = []
 		if self.bond is not None: 
-			if self <= self.bond:
-				l.append("%i -> %i [color=red, dir=both, arrowtail=%s, arrowhead=%s]" % (id(self.segment), id(self.bond.segment), fn(self), fn(self.bond)))
+			if self < self.bond:
+				l.append("%i -> %i [color=black, dir=both, arrowtail=%s, arrowhead=%s]" % (id(self.segment), id(self.bond.segment), fn(self), fn(self.bond)))
 		
 		
 		if self.isModuleMaterial():
@@ -147,7 +147,7 @@ class Side(object):
 				linkedAncestor = descendant.bond.ancestor()
 				colour = "cyan"
 				if descendant in nonTrivialLiftedBonds:
-					colour = "magenta"
+					colour = "red"
 					if self < linkedAncestor:
 						l.append("%i -> %i [color=%s, dir=both, arrowtail=%s, arrowhead=%s, weight=0]" % (id(self.segment), id(linkedAncestor.segment), colour, fn(self), fn(linkedAncestor)))
 		

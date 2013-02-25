@@ -246,7 +246,8 @@ class DNAHistoryGraph(object):
 	## Output
 	##################################
 	def dot(self):
-		return "\n".join(["digraph G {" ] + [X.dot() for X in self.eventGraph] + ["}"])
+		return "\n".join(["digraph G {" ] + [X.dot() for X in self.eventGraph] +
+						["{rank=same;"] + [str(id(segment)) for segment in self.segments if segment.parent == None ] + ["}", "}"])
 
 	##################################
 	## Validation
