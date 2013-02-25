@@ -22,7 +22,10 @@ def main():
         dirName = os.path.join(outputDir, "%s_graphViz" % experiment)
         def writeDot(fileName):
             fileName = os.path.join(dirName, fileName)
-            system("dot %s -Tpdf > %s.pdf" % (fileName, fileName))
+            try:
+                system("dot %s -Tpdf > %s.pdf" % (fileName, fileName))
+            except:
+                print "Dot threw up with %s" % fileName
         writeDot("history")
         writeDot("g")
         writeDot("gPRRMin")

@@ -95,7 +95,7 @@ def main():
         results.append(reportGraph(baseGraph, "G", "n/a", "n/a"))
         #assert baseGraph.validate()
         
-        bestHistoryCost = baseGraph.upperBoundRearrangementCost()
+        bestHistoryCost = baseGraph.upperBoundRearrangementCost() + baseGraph.upperBoundSubstitutionCost()
         iteration, found = 0, 0
         while iteration < iterationNumber or found == 0:
             iteration += 1
@@ -107,7 +107,7 @@ def main():
             #lBRC = graph.lowerBoundRearrangementCost()
             step = 1
             currentResults = []
-            while graph.ambiguity() and graph.lowerBoundRearrangementCost() <= bestHistoryCost:
+            while graph.ambiguity() and graph.lowerBoundRearrangementCost() + graph.lowerBoundSubstitutionCost() <= bestHistoryCost:
                 currentResults.append(reportGraph(graph, "G'", found, step))
                 c1EL = listCase1(graph)
                 c2EL = listCase2(graph)
@@ -124,7 +124,7 @@ def main():
                 
                 step += 1
             
-            if graph.lowerBoundRearrangementCost() <= bestHistoryCost:
+            if graph.lowerBoundRearrangementCost() + graph.lowerBoundSubstitutionCost() <= bestHistoryCost:
                 results = results + currentResults
                 assert graph.ambiguity() == 0
                 #Report final AVG
@@ -146,7 +146,7 @@ def main():
                 #assert graph.lowerBoundRearrangementCost() == graph.upperBoundRearrangementCost()
                 #for m in graph.modules():
                 #    assert m.isSimple()
-                bestHistoryCost = graph.lowerBoundRearrangementCost()
+                bestHistoryCost = graph.lowerBoundRearrangementCost() + graph.lowerBoundSubstitutionCost()
                 
         experiment += 1
         print 'EXPERIMENT', experiment, time.time() - last
@@ -240,9 +240,9 @@ def main():
         historyRow, gRow, gPRows = getRows() 
         dirName = os.path.join(outputDir, "%s_graphViz" % experiment)
         system("mkdir %s" % dirName)
-        def fn(statFn, term):
-            i = statFn([ row[term] for row in gPRows ])
-            return [ row for row in gPRows if int(row[term]) == i ][0]
+        def fn(statFn, term, secondTerm):
+            i = statFn([ (row[term], row[secondTerm]) for row in gPRows ])
+            return [ row for row in gPRows if row[term] == i[0] and row[secondTerm] == i[1] ][0]
         def writeDot(fileName, row):
             fileName = os.path.join(dirName, fileName)
             fH = open(fileName, 'w')
@@ -251,10 +251,10 @@ def main():
             #system("dot %s -Tpdf > %s.pdf" % (fileName, fileName))
         writeDot("history", historyRow)
         writeDot("g", gRow)
-        writeDot("gPRRMin" , fn(min, "ubrc"))
-        writeDot("gPRRMax", fn(max, "ubrc"))
-        writeDot("gPRSMin" , fn(min, "ubsc"))
-        writeDot("gPRSMax", fn(max, "ubsc"))
+        writeDot("gPRRMin" , fn(min, "ubrc", "ubsc"))
+        writeDot("gPRRMax", fn(max, "ubrc", "ubsc"))
+        writeDot("gPRSMin" , fn(min, "ubsc", "ubrc"))
+        writeDot("gPRSMax", fn(max, "ubsc", "ubrc"))
         
     print "Simulations took %s seconds" % (time.time() - startTime)
 
