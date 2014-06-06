@@ -12,10 +12,10 @@ Implementation of the DNA history data structure. Currently, implementation of t
 - Sampling of AVG extensions thru Ben`s algos
 
 To run:
-# Set your PYTHONPATH to find the current directory.
-# python process/reAVG.py
-** Creates a random History
-** Creates an AVG (pseudo) realization of the history
-** Removes random elements from the AVG to produce a DNA history graph
-** Tries to construct an AVG extension of the DNA history graph using the heuristic moves
+- Set your PYTHONPATH to find the current directory.
+- python process/reAVG.py
+  - Creates a random History
+  - Creates an AVG (pseudo) realization of the history
+  - Removes random elements from the AVG to produce a DNA history graph
+  - Tries to construct an AVG extension of the DNA history graph using the heuristic moves
 
